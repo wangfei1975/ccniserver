@@ -5,18 +5,22 @@ This project is a server side implemenation of CCNI protocol.
 
 http://ccniserver.googlecode.com/files/CCNIProtolcolWhitePater.pdf
 
+2. Get source file
 
-2. Project source files
+3. Project source files
 
 ccniserver |-readme.txt
 	   |-docs
-	   |-source
+	   |-src
 	   |-bin
 
 
-3. Build instructions
+4. Build instructions
 
-4. 
+
+5. Install
+
+
 
  
 
