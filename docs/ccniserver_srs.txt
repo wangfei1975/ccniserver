@@ -16,6 +16,7 @@ CCNI server software requirement specification
  --分级事务日志 (运行时指定)
  --分级的调试日志 (编译时指定)
 
+.支持64/32位版本.
      
   
   
