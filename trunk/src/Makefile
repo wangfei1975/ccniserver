@@ -22,7 +22,7 @@
 #/***************************************************************************************/
 
 PRGNAME = ccniserver 
-
+MAKE    = make --no-print-directory -s
 CCNI_DIR        = ./ccni
 FRAMEWORK_DIR   = ./framework
 UTILS_DIR       = ./utils
@@ -48,14 +48,13 @@ endif
 
 export CFLAG
 
-export  MAKE = make  --no-print-directory -s
 export  CC = g++
 export  LD = g++
 export  AR = ar
 export  BIN_DIR = $(CURDIR)/../bin/
 
-export  INC = -I/usr/include/libxml2 -I$(CURDIR)/inc
-export  LIBS = -lpthread -lxml2 -lssl 
+export  INC  = -I/usr/include/libxml2 -I$(CURDIR)/inc
+export  LIBS = -L/usr/lib -lpthread -lxml2 -lssl 
 #-lcrypt -lssl3
 
 export DEBUG
