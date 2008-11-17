@@ -58,7 +58,7 @@ class CAutoMutex
 private:
     CMutex & _mu;
 public:
-    CAutoMutex(CMutex & mu),_mu(mu)
+    CAutoMutex(CMutex & mu):_mu(mu)
     {
       _mu.lock();
     }
