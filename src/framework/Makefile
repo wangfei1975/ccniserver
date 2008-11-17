@@ -42,7 +42,7 @@ OBJS      = $(SRCS:.cpp=.o)
 
 
 TARGET = $(BIN_DIR)$(CCNI_SERVER) 
-LIBS   = $(BIN_DIR)$(CCNI_LIB).a $(BIN_DIR)$(UTILS_LIB).a $(BIN_DIR)$(DBI_LIB).a
+LIBS   += $(BIN_DIR)$(CCNI_LIB).a $(BIN_DIR)$(UTILS_LIB).a $(BIN_DIR)$(DBI_LIB).a
 .PHONY : all
 all : $(TARGET)
 
