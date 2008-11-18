@@ -1,15 +1,14 @@
-OS
+OS<p>
    Linux (Ubuntu 804 or compatible OS)
 
-External packages
-   libxml2
-
+External packages<p>
+   libxml2<p>
    libssl
 
-Compiler
+Compiler<p>
    gcc 3.2.3 or later version .
 
-IDE (Optional)
+IDE (Optional)<p>
    eclipse 3.3 and CDT 4.0.3 or compatible version.
 
 Version control
