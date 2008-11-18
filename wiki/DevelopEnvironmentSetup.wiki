@@ -37,8 +37,17 @@ Prepare for development machine: Referenced steps on Ubuntu 8.04
      Please refer to 
      http://subclipse.tigris.org/install.html
 
-Get source code:
-    $ svn checkout 
+Get source code
+. For team members:
+    $svn checkout https://ccniserver.googlecode.com/svn/trunk/ccniserver --username  <your googlecode accoutn>
+     When prompted, enter your generated googlecode.com password.
+. For Non-members:
+    $svn checkout http://ccniserver.googlecode.com/svn/trunk/ ccniserver-read-only
+
+
+Build source
+   $cd ccniserver
+   $make
 
 
 
