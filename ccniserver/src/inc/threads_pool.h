@@ -29,6 +29,39 @@ using namespace std;
 #include "mutex.h"
 #include "msgqueue.h"
 
+/*
+ * 
+ * main idea of thread pool
+ *   .  CThreadsPool contains some workthreads and one msgqueue and one management threads.
+ *   .  CThreadsPool once initialized(function create), it will create above things.
+ *   .  CWorkThread once created, it will block at waitevent
+ *   .  CThreadPool's management thread receive job(msg) from msgqueue and find a idle working thread, 
+ *        then weak up the working thread, and let the working thread do the job.
+ *   .  CJob is a interface for user.
+ * 
+ * code example :
+ *      
+ *     //extends CJob and overwrite run    
+ *     class CMyJob : public CJob
+ *     {
+ *         bool run()
+ *         {
+ *             printf("hello, this is myjob\n");
+ *             usleep(10);
+ *             //delete self to avoid memory leak.
+ *             delete(this);
+ *         }
+ *     }
+ * 
+ *     //
+ *     CThreadsPool pool;
+ *     pool.create(4);          //create 4 work threads.
+ *     //Note: it's depends on user to delete the CMyJob instance in run()  
+ *     pool.assign(new CMyJob());
+ * 
+ * */
+
+
 class CJob
 {
 protected:
