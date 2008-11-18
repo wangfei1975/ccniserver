@@ -1,0 +1,16 @@
+. OS
+    Linux (Ubuntu 804 or compatible OS)
+
+. External packages
+    libxml2
+    libssl
+
+. Compiler
+    gcc 3.2.3 or above version .
+
+. IDE (Optional)
+    eclipse 3.3 and CDT 4.0.3 or compatible version.
+
+. Version control
+    Subversion command-line client, version 1.4.6.
+    Subclipse 1.4.6 (Optional)
