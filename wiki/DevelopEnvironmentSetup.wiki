@@ -7,7 +7,7 @@ External packages
    libssl
 
 Compiler
-   gcc 3.2.3 or above version .
+   gcc 3.2.3 or later version .
 
 IDE (Optional)
    eclipse 3.3 and CDT 4.0.3 or compatible version.
