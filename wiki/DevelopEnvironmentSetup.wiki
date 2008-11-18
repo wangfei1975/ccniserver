@@ -17,7 +17,7 @@ Version control
 
    Subclipse 1.4.6 (Optional)
 
-Prepare for development machine, referenced steps on Ubuntu 8.04
+Prepare for development machine, reference steps on Ubuntu 8.04
  . install libxml2-dev
      $ sudo apt-get install libxml2-dev
 
