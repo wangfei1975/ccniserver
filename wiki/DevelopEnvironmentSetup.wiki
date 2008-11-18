@@ -1,52 +1,55 @@
-. OS
-    Linux (Ubuntu 804 or compatible OS)
+OS
+   Linux (Ubuntu 804 or compatible OS)
 
-. External packages
-    libxml2
-    libssl
+External packages
+   libxml2
 
-. Compiler
-    gcc 3.2.3 or above version .
+   libssl
 
-. IDE (Optional)
-    eclipse 3.3 and CDT 4.0.3 or compatible version.
+Compiler
+   gcc 3.2.3 or above version .
 
-. Version control
-    Subversion command-line client, version 1.4.6.
-    Subclipse 1.4.6 (Optional)
+IDE (Optional)
+   eclipse 3.3 and CDT 4.0.3 or compatible version.
 
-Prepare for development machine: Referenced steps on Ubuntu 8.04
-. install libxml2-dev
+Version control
+   Subversion command-line client, version 1.4.6
+
+   Subclipse 1.4.6 (Optional)
+
+Prepare for development machine, referenced steps on Ubuntu 8.04
+ . install libxml2-dev
      $ sudo apt-get install libxml2-dev
 
-. install libssl-dev
+ . install libssl-dev
      $ sudo apt-get install libssl-dev
 
-. install subversion client
+ . install subversion client
      $ sudo apt-get install subversion
 
-. install a GUI svn client (optional)
+ . install a GUI svn client (optional)
      $ sudo apt-get install esvn
 
-. install eclipse (optional)
-     Please refer to
-         http://www.eclipse.org/downloads/
+ . install eclipse (optional)
+     Please refer to http://www.eclipse.org/downloads/
+
      Recommend Eclipse IDE for C/C++ Developers
 
 . install subclipse
-     Please refer to 
-     http://subclipse.tigris.org/install.html
+     Please refer to http://subclipse.tigris.org/install.html
 
 Get source code
-. For team members:
-    $svn checkout https://ccniserver.googlecode.com/svn/trunk/ccniserver --username  <your googlecode accoutn>
+ . For team members
+    $svn checkout https://ccniserver.googlecode.com/svn/trunk/ccniserver --username  <your googlecode account>
      When prompted, enter your generated googlecode.com password.
-. For Non-members:
+
+ . For Non-members:
     $svn checkout http://ccniserver.googlecode.com/svn/trunk/ ccniserver-read-only
 
 
 Build source
    $cd ccniserver
+
    $make
 
 
