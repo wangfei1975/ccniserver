@@ -14,3 +14,37 @@
 . Version control
     Subversion command-line client, version 1.4.6.
     Subclipse 1.4.6 (Optional)
+
+Prepare for development machine: Referenced steps on Ubuntu 8.04
+. install libxml2-dev
+     $ sudo apt-get install libxml2-dev
+
+. install libssl-dev
+     $ sudo apt-get install libssl-dev
+
+. install subversion client
+     $ sudo apt-get install subversion
+
+. install a GUI svn client (optional)
+     $ sudo apt-get install esvn
+
+. install eclipse (optional)
+     Please refer to
+         http://www.eclipse.org/downloads/
+     Recommend Eclipse IDE for C/C++ Developers
+
+. install subclipse
+     Please refer to 
+     http://subclipse.tigris.org/install.html
+
+Get source code:
+    $ svn checkout 
+
+
+
+
+
+
+
+
+ 
