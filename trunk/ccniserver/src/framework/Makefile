@@ -29,10 +29,6 @@ AR = ar
 CFLAG  = -Wall -pipe -ggdb -D _DEBUG
 endif
 
-ifdef NO_CENTER
-CFLAG += -DWN_NO_CENTERSRV
-endif
-
 INC      += -I.
 
 CFLAG    += $(INC)
@@ -48,7 +44,7 @@ all : $(TARGET)
 
 $(TARGET): $(OBJS)
 	echo $(LD) -o $(TARGET) $(LD_FLAG) $(LIBS) $(OBJS) 
-	$(LD) -o $(TARGET) $(LD_FLAG) $(LIBS) $(OBJS) 
+	$(LD) -o $(TARGET) $(LD_FLAG) $(OBJS) $(LIBS)
 
 
 %.o:%.cpp
