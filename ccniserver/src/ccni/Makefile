@@ -29,9 +29,6 @@ AR = ar
 CFLAG  = -Wall -pipe -ggdb -D _DEBUG
 endif
 
-ifdef NO_CENTER
-CFLAG += -DWN_NO_CENTERSRV
-endif
 
 INC      += -I.
 
@@ -47,7 +44,7 @@ TARGET = $(BIN_DIR)$(CCNI_LIB).a
 all : $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(AR) r $(TARGET) $(OBJS)  
+	$(AR) -r $(TARGET) $(OBJS)  
 
 
 %.o:%.cpp

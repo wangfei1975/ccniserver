@@ -117,6 +117,37 @@ private:
 private:
 
 	static void * thread_func(void *);
+
 };
+
+
+extern CLog  dbgLog;
+/*  
+ *  debug logger
+ *
+ *  LOGE  - error           0
+ *  LOGW  - warning         1
+ *  LOGI  - inforation      2
+ *  LOGD  - debug           3
+ *  LOGV  - verbos          4
+ */
+#define LOGE(...)     {dbgLog.print(0, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define LOGW(...)     {dbgLog.print(1, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define LOGI(...)     {dbgLog.print(2, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define LOGD(...)     {dbgLog.print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define LOGV(...)     {dbgLog.print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+
+extern int abcde;
+/*
+ *   business logger
+ *            (TBD)
+ */
+//extern CLog  * evtLog;
+
+//#define ELOGE(...)     {LOGE(__VA_ARGS__); if(evtLog)evtLog->print(0, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+//#define ELOGW(...)     {LOGW(__VA_ARGS__); if(evtLog)evtLog->print(1, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+//#define ELOGI(...)     {LOGI(__VA_ARGS__); if(evtLog)evtLog->print(2, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+//#define ELOGD(...)     {LOGD(__VA_ARGS__); if(evtLog)evtLog->print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+//#define ELOGV(...)     {LOGV(__VA_ARGS__); if(evtLog)evtLog->print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 
 #endif /*LOG_H_*/

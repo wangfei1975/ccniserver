@@ -21,7 +21,10 @@
 /*             2008-06-05     initial draft                                            */
 /***************************************************************************************/
 #include "log.h"
+static const char * dbg_fname = "./logs/ccni.dbg.";
 
+CLog dbgLog(dbg_fname, CLog::DEBUG_LOG);
+int abcde = 55;
 int CLog::_instance = 0;
 
 pthread_t CLog::_pth = 0;
@@ -127,10 +130,7 @@ int CLog::print(int level, const char * file, const char * function, int line, c
 	va_start(body, fmt);
 	len = vsnprintf(item->txt+len, LOG_BUF_SIZE-len, fmt, body);
 	va_end(body);
-	if (_type == DEBUG_LOG)
-	{
-		printf(item->txt);
-	}
+
 	if (!_queue->send(item))
 	{
 		return -1;
@@ -181,6 +181,10 @@ void CLog::update(LOGITEM * item)
 			s = ftell(_logfp);
 		}
 
+	}
+	if (_type == DEBUG_LOG)
+	{
+	     printf(item->txt);
 	}
 	fprintf(_logfp, item->txt);
 	fflush(_logfp);
