@@ -24,7 +24,7 @@
 static const char * dbg_fname = "./logs/ccni.dbg.";
 
 CLog dbgLog(dbg_fname, CLog::DEBUG_LOG);
-int abcde = 55;
+ 
 int CLog::_instance = 0;
 
 pthread_t CLog::_pth = 0;
