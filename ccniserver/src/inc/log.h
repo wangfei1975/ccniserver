@@ -130,6 +130,12 @@ extern CLog  dbgLog;
  *  LOGI  - inforation      2
  *  LOGD  - debug           3
  *  LOGV  - verbos          4
+ *
+ * debug log format:
+    [FileName][FunctionName][LineNumber][ThreadID][DateTime:Microsecond][LogLevel]log text.
+
+   Example:
+    [main.cpp][main][7][3081173744][1227202771:971276][0]ccni server, log error.
  */
 #define LOGE(...)     {dbgLog.print(0, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGW(...)     {dbgLog.print(1, __FILE__, __func__, __LINE__, __VA_ARGS__);}
@@ -137,7 +143,7 @@ extern CLog  dbgLog;
 #define LOGD(...)     {dbgLog.print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGV(...)     {dbgLog.print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 
-extern int abcde;
+
 /*
  *   business logger
  *            (TBD)
