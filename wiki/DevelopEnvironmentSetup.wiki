@@ -4,7 +4,9 @@ OS<p>
 
 External packages<p>
    libxml2<p>
-   libssl
+   libssl<p>
+   libsqlite3<p>
+
 
 Compiler<p>
    gcc 3.2.3 or later version .
@@ -18,24 +20,27 @@ Version control
    Subclipse 1.4.6 (Optional)
 
 Prepare for development machine, reference steps on Ubuntu 8.04
- . install libxml2-dev
+ * install libxml2-dev
      $ sudo apt-get install libxml2-dev
 
- . install libssl-dev
+ * install libssl-dev
      $ sudo apt-get install libssl-dev
 
- . install subversion client
+ * install libsqlite3-dev
+     $ sudo apt-get install libsqlite3-dev
+
+ * install subversion client
      $ sudo apt-get install subversion
 
- . install a GUI svn client (optional)
+ * install a GUI svn client (optional)
      $ sudo apt-get install esvn
 
- . install eclipse (optional)
+ * install eclipse (optional)
      Please refer to http://www.eclipse.org/downloads/
 
      Recommend Eclipse IDE for C/C++ Developers
 
-. install subclipse
+ * install subclipse (optional)
      Please refer to http://subclipse.tigris.org/install.html
 
 Get source code
