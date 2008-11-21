@@ -106,11 +106,29 @@ static bool check_for_lock_process(const char * pidfname)
     return (is_locked);
 }
 
+const char * get_executable_path()
+{
+   static char path[PATH_MAX] = {0};
+   if (path[0] == 0)
+   {
+       if (readlink("/proc/self/exe", path, PATH_MAX) > 0)
+       {
+           char * p = path + strlen(path) - 1;
+           while(*p != '/' & p > path)
+           {
+               p--;
+           }
+           if (*p == '/') *(p+1) = 0;
+       }
+       
+   }
+   return path;
+}
 void run_as_daemon(void (*handler)(int))
 {
     pid_t pid;
+    
     dup2(STDERR_FILENO, STDOUT_FILENO);
-
     if ((pid = fork()) < 0)
     {
         printf("fork error!\n");
@@ -121,14 +139,16 @@ void run_as_daemon(void (*handler)(int))
         //exit parent process.
         exit(0);
     }
-    // obtain a new process group
+    
+    // obtain a new process group 
     setsid();
+     
     // set up the signal handlers
     signal(SIGINT, handler);
     signal(SIGHUP, handler);
     signal(SIGKILL, handler);
     signal(SIGTERM, handler);
-
+   
     // ignore child
     signal(SIGCHLD, SIG_IGN);
 
@@ -136,6 +156,7 @@ void run_as_daemon(void (*handler)(int))
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTOU, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
+   
 }
 
 int tcp_read(int fd, void * buf, int len)

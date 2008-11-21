@@ -89,6 +89,10 @@ public:
 
     //write to file
     void update(LOGITEM * item);
+public:
+
+    static CLog * dbgLog();
+    static CLog * evtLog();
 
 private:
     static pthread_t _pth;
@@ -116,7 +120,6 @@ private:
 
 };
 
-extern CLog dbgLog;
 /*  
  *  debug logger
  *
@@ -132,17 +135,16 @@ extern CLog dbgLog;
  Example:
  [main.cpp][main][7][3081173744][1227202771:971276][0]ccni server, log error.
  */
-#define LOGE(...)     {dbgLog.print(0, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-#define LOGW(...)     {dbgLog.print(1, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-#define LOGI(...)     {dbgLog.print(2, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-#define LOGD(...)     {dbgLog.print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-#define LOGV(...)     {dbgLog.print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define LOGE(...)     {CLog::dbgLog()->print(0, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define LOGW(...)     {CLog::dbgLog()->print(1, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define LOGI(...)     {CLog::dbgLog()->print(2, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define LOGD(...)     {CLog::dbgLog()->print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define LOGV(...)     {CLog::dbgLog()->print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 
 /*
  *   business logger
  *            (TBD)
  */
-//extern CLog  * evtLog;
 
 //#define ELOGE(...)     {LOGE(__VA_ARGS__); if(evtLog)evtLog->print(0, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 //#define ELOGW(...)     {LOGW(__VA_ARGS__); if(evtLog)evtLog->print(1, __FILE__, __func__, __LINE__, __VA_ARGS__);}
