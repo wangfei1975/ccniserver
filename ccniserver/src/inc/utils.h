@@ -26,6 +26,8 @@
 #include <libxml2/libxml/parser.h>
 #include <openssl/md5.h>
 
+//return executable binary path of current process.
+extern const char * get_executable_path();
 extern void run_as_daemon(void (*handler)(int));
 extern void check_unique_instance(const char * pidfname);
 
@@ -38,6 +40,8 @@ extern xmlNodePtr get_xml_childnode(xmlNodePtr parent, const char * ndname);
 extern int get_xml_node_intprop(xmlNodePtr nd, const char * propname);
 extern const char * get_xml_node_strprop(xmlNodePtr nd, const char * propname);
 extern const char * get_xml_node_content(xmlNodePtr nd);
+
+
 // get xml node child's content.
 extern const char * get_xml_node_strfield(xmlNodePtr nd, const char * fieldname);
 //

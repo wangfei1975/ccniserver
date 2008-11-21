@@ -21,9 +21,9 @@
 /*             2008-06-05     initial draft                                            */
 /***************************************************************************************/
 #include "log.h"
-static const char * dbg_fname = "./logs/ccni.dbg.";
+#include "utils.h"
 
-CLog dbgLog(dbg_fname, CLog::DEBUG_LOG);
+static const char * dbg_fname = "/logs/ccni.dbg.";
 
 int CLog::_instance = 0;
 
@@ -34,6 +34,7 @@ CMsgQueue * CLog::_queue= NULL;
 CLog::CLog(const char * fname, LOGTYPE type, LOGFILE_CFG policy, int fsize) :
     _fname(fname), _fnumber(0), _lpolicy(policy), _fsize(fsize), _logfp(0), _type(type)
 {
+
 #ifdef LOG_LEVEL
     _logLevel = LOG_LEVEL;
 #else
@@ -59,34 +60,29 @@ CLog::CLog(const char * fname, LOGTYPE type, LOGFILE_CFG policy, int fsize) :
         _fsize = 100*1024;
     }
     _instance++;
+
 }
 CLog::~CLog()
 {
     _instance --;
-
-    //          struct msqid_ds info;
-    //           LOGITEM * item = NULL;
-    //            do
-    //            {
-    //             memset(&info, 0, sizeof(info));
-    //             msgctl(_queue->getQueue(), IPC_STAT, &info);
-    //             usleep(10);
-    //
-    //             if (info.msg_qnum > 0)
-    //             {
-    //               if ((item = (LOGITEM *)_queue->receive()) == NULL)
-    //               {
-    //                   break;
-    //               }
-    //                item->logger->update(item);
-    //             }
-    //
-    //            }while(info.msg_qnum > 0);
-
     if (_instance == 0)
     {
+        
         pthread_cancel(_pth);
         _pth = 0;
+
+        int cnt = _queue->getQueueMsgCnt();
+        LOGITEM * item= NULL;
+        while (cnt > 0)
+        {
+            if ((item = (LOGITEM *)_queue->receive()) == NULL)
+            {
+                break;
+            }
+            item->logger->update(item);
+            cnt = _queue->getQueueMsgCnt();
+        }
+
         _queue->destroy();
         delete _queue;
     }
@@ -268,3 +264,39 @@ void * CLog::thread_func(void *)
     return NULL;
 }
 
+CLog * CLog::dbgLog()
+{
+    static CLog log((std::string(get_executable_path()) + dbg_fname).c_str(), CLog::DEBUG_LOG);
+    return &log;
+    //static CLog * log= NULL;
+    /*
+     static CMutex mu;
+
+     if (log != NULL)
+     {
+     return log;
+     }
+     CAutoMutex dumy(mu);
+     if (log == NULL)
+     {
+     log = new CLog(dbg_fname, CLog::DEBUG_LOG);
+     }
+     return log;
+     */
+}
+CLog * CLog::evtLog()
+{
+    static CLog * log= NULL;
+    static CMutex mu;
+
+    if (log != NULL)
+    {
+        return log;
+    }
+    CAutoMutex dumy(mu);
+    if (log == NULL)
+    {
+        log = new CLog(dbg_fname, CLog::EVENT_LOG);
+    }
+    return log;
+}
