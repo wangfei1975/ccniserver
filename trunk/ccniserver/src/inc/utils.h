@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             mutex.h                                                                 */
+/*             utils.h                                                                 */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -19,54 +19,36 @@
 /*                                                                                     */
 /*  histroy                                                                            */
 /*             2008-06-05     initial draft                                            */
-/*             2008-11-16     add CAutoMutex                                           */
 /***************************************************************************************/
+#ifndef COMMON_UTILITY_H_
+#define COMMON_UTILITY_H_
 
-#ifndef MUTEX_H_
-#define MUTEX_H_
-#include <pthread.h>
+#include <libxml2/libxml/parser.h>
+#include <openssl/md5.h>
 
-class CMutex
-{
-private:
-    pthread_mutex_t _mutex;
+extern void run_as_daemon(void (*handler)(int));
+extern void check_unique_instance(const char * pidfname);
 
-public:
-    CMutex()
-    {
-        pthread_mutex_init(&_mutex, NULL);
-    }
-    ~CMutex()
-    {
-        pthread_mutex_destroy(&_mutex);
-    }
-    void lock()
-    {
-        pthread_mutex_lock(&_mutex);
-    }
-    void unlock()
-    {
-        pthread_mutex_unlock(&_mutex);
-    }
+extern int tcp_read(int sockfd, void * buf, int len);
+extern int tcp_write(int sockfd, void * buf, int len);
 
-};
+// xml parse utilities
+extern xmlNodePtr get_xml_childnode(xmlNodePtr parent, const char * ndname);
+
+extern int get_xml_node_intprop(xmlNodePtr nd, const char * propname);
+extern const char * get_xml_node_strprop(xmlNodePtr nd, const char * propname);
+extern const char * get_xml_node_content(xmlNodePtr nd);
+// get xml node child's content.
+extern const char * get_xml_node_strfield(xmlNodePtr nd, const char * fieldname);
 //
-//a mutex helper, to avoid forget unlock, espically in multiple exit point functions.
-//
-class CAutoMutex
-{
-private:
-    CMutex & _mu;
-public:
-    CAutoMutex(CMutex & mu) :
-        _mu(mu)
-    {
-        _mu.lock();
-    }
-    ~CAutoMutex()
-    {
-        _mu.unlock();
-    }
-};
+extern int get_xml_node_intfield(xmlNodePtr nd, const char * fieldname);
+extern bool get_xml_node_intfield(xmlNodePtr nd, const char * fieldname, int * value);
 
-#endif /*MUTEX_H_*/
+// md5 calc
+extern void md5_calc(unsigned char * out, unsigned char * in, unsigned int len);
+
+//
+// in_addr_t ip to string
+#define  strip(ip)  inet_ntoa(*((struct in_addr *) &ip))
+
+#endif /*COMMON_UTILITY_H_*/
