@@ -54,74 +54,69 @@
 class CLog
 {
 public:
-	const static int LOG_BUF_SIZE = 1024;
-	const static int DEFAULT_LOGFILE_SIZE = 1024*1024;
-	enum LOGTYPE
-	{
-		DEBUG_LOG,
-		EVENT_LOG
-	};
-	enum LOGFILE_CFG
-	{
-		NO_SPLIT,
-		SPLIT_ON_DATE,
-		SPLIT_ON_SIZE
-	};
-	struct LOGITEM
-	{
-		CLog * logger;
-		struct tm logtime;
-		char txt[LOG_BUF_SIZE];
-		LOGITEM(CLog * l) :
-			logger(l)
-		{
-		}
-	};
+    const static int LOG_BUF_SIZE = 1024;
+    const static int DEFAULT_LOGFILE_SIZE = 1024*1024;
+    enum LOGTYPE
+    {
+        DEBUG_LOG,
+        EVENT_LOG
+    };
+    enum LOGFILE_CFG
+    {
+        NO_SPLIT,
+        SPLIT_ON_DATE,
+        SPLIT_ON_SIZE
+    };
+    struct LOGITEM
+    {
+        CLog * logger;
+        struct tm logtime;
+        char txt[LOG_BUF_SIZE];
+        LOGITEM(CLog * l) :
+            logger(l)
+        {
+        }
+    };
 public:
 
-	CLog(const char * fname = NULL, 
-		 LOGTYPE type = DEBUG_LOG, 
-		 LOGFILE_CFG policy = SPLIT_ON_SIZE,
-		 int fsize = DEFAULT_LOGFILE_SIZE);
-	
-	~CLog();
+    CLog(const char * fname = NULL, LOGTYPE type = DEBUG_LOG, LOGFILE_CFG policy = SPLIT_ON_SIZE,
+            int fsize = DEFAULT_LOGFILE_SIZE);
 
-	//build string send to msg queue.
-	int print(int level, const char * file, const char * function, int line, const char * fmt, ...);
+    ~CLog();
 
-	//write to file
-	void update(LOGITEM * item);
+    //build string send to msg queue.
+    int print(int level, const char * file, const char * function, int line, const char * fmt, ...);
+
+    //write to file
+    void update(LOGITEM * item);
 
 private:
-
-
-	static pthread_t _pth;
-	static CMsgQueue * _queue;
-	static int _instance;
+    static pthread_t _pth;
+    static CMsgQueue * _queue;
+    static int _instance;
 
 private:
-	std::string _fname;   //log file name
-	int _fnumber;         //file number  the exact file name is : fnameXXXX.log
-	LOGFILE_CFG _lpolicy; //how we split the log file.
-	int _fsize;           //if split in fixed size
-	FILE * _logfp;
-	struct tm _curftime;  //used for split on date
-	LOGTYPE _type;
-	CMutex _lock;
-	int _logLevel;
+    std::string _fname; //log file name
+    int _fnumber; //file number  the exact file name is : fnameXXXX.log
+    LOGFILE_CFG _lpolicy; //how we split the log file.
+    int _fsize; //if split in fixed size
+    FILE * _logfp;
+    struct tm _curftime; //used for split on date
+    LOGTYPE _type;
+    CMutex _lock;
+    int _logLevel;
 
 private:
-	bool _createDateLogFile(const struct tm * t);
-	bool _createSizeLogFile();
-	bool _createLogFile();
+    bool _createDateLogFile(const struct tm * t);
+    bool _createSizeLogFile();
+    bool _createLogFile();
 private:
 
-	static void * thread_func(void *);
+    static void * thread_func(void *);
 
 };
 
-
-extern CLog  dbgLog;
+extern CLog dbgLog;
 /*  
  *  debug logger
  *
@@ -132,17 +127,16 @@ extern CLog  dbgLog;
  *  LOGV  - verbos          4
  *
  * debug log format:
-    [FileName][FunctionName][LineNumber][ThreadID][DateTime:Microsecond][LogLevel]log text.
+ [FileName][FunctionName][LineNumber][ThreadID][DateTime:Microsecond][LogLevel]log text.
 
-   Example:
-    [main.cpp][main][7][3081173744][1227202771:971276][0]ccni server, log error.
+ Example:
+ [main.cpp][main][7][3081173744][1227202771:971276][0]ccni server, log error.
  */
 #define LOGE(...)     {dbgLog.print(0, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGW(...)     {dbgLog.print(1, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGI(...)     {dbgLog.print(2, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGD(...)     {dbgLog.print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGV(...)     {dbgLog.print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-
 
 /*
  *   business logger
