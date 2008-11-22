@@ -29,7 +29,9 @@
 #include <signal.h>
 #include <pthread.h>
 #include <stdarg.h>
-
+#include <openssl/md5.h>
+#include <string>
+#include <libxml/parser.h>
 #include "utils.h"
 #include "log.h"
 
@@ -324,4 +326,55 @@ void md5_calc(unsigned char * out, unsigned char * in, unsigned int len)
     MD5_Update(&c, in, len);
     MD5_Final(out, &c);
 }
+ std::string & gb23122utf8(std::string & dst, const char * src)
+{
+    iconv_t icpt;
 
+    size_t inlen = strlen(src), outlen;
+    dst.erase(dst.begin(), dst.end());
+
+    if ((icpt = iconv_open("utf-8", "gb2312")) == (iconv_t)-1)
+    {
+        return dst;
+    }
+    outlen = inlen*2;
+    char * out = new char[outlen+1];
+    char * sout = out;
+    int ret;
+    if ((ret = (int)iconv(icpt, (char **)&src, &inlen, &sout, &outlen)) != -1)
+    {
+        *sout = 0;
+        dst = out;
+    }
+
+    delete []out;
+    iconv_close(icpt);
+    return dst;
+}
+
+std::string & utf82gb2312(std::string & dst, const char * src)
+{
+    iconv_t icpt;
+
+    size_t inlen = strlen(src), outlen;
+    dst.erase(dst.begin(), dst.end());
+
+    if ((icpt = iconv_open("gb2312", "utf-8")) == (iconv_t)-1)
+    {
+        return dst;
+    }
+    outlen = inlen;
+    char * out = new char[outlen+1];
+    char * sout = out;
+    int ret;
+    if ((ret = (int)iconv(icpt, (char **)&src, &inlen, &sout, &outlen)) != -1)
+    {
+        *sout = 0;
+        dst = out;
+    }
+
+    delete []out;
+    iconv_close(icpt);
+    return dst;
+
+}

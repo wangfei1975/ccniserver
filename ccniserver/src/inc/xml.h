@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             utils.h                                                                 */
+/*             xml.h                                                                   */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -18,44 +18,102 @@
 /*             bjwf       bjwf2000@gmail.com                                           */
 /*                                                                                     */
 /*  histroy                                                                            */
-/*             2008-06-05     initial draft                                            */
+/*             2008-11-22     initial draft                                            */
 /***************************************************************************************/
-#ifndef COMMON_UTILITY_H_
-#define COMMON_UTILITY_H_
 
+#ifndef XML_H_
+#define XML_H_
+
+#include <libxml/parser.h>
 #include <string>
 
+/*
+ * a simple wrapper of xmlNodePtr
+ */
 
-//return executable binary path of current process.
-extern const char * get_executable_path();
-extern void run_as_daemon(void (*handler)(int));
-extern void check_unique_instance(const char * pidfname);
+class CXmlNode
+{
+protected:
+    xmlNodePtr _node;
+public:
+    operator xmlNodePtr()
+    {
+        return _node;
+    }
+    bool isEmpty() const
+    {
+        return (_node == NULL);
+    }
+    //  operator 
+public:
 
-extern int tcp_read(int sockfd, void * buf, int len);
-extern int tcp_write(int sockfd, void * buf, int len);
+    CXmlNode():_node(NULL){}
+    CXmlNode(xmlNodePtr nd):_node(nd){}
+    ~CXmlNode(){}
 
-// xml parse utilities
-//extern xmlNodePtr get_xml_childnode(xmlNodePtr parent, const char * ndname);
+    bool create(const char * name);
+    bool create();
+    void free();
 
-//extern int get_xml_node_intprop(xmlNodePtr nd, const char * propname);
-//extern const char * get_xml_node_strprop(xmlNodePtr nd, const char * propname);
-//extern const char * get_xml_node_content(xmlNodePtr nd);
+    void attach(xmlNodePtr nd);
+    void detach();
 
+    bool setContent(const char * content);
+    std::string & getContent(std::string & v);
+    bool setName(const char * name);
+    bool addProp(const char * propName, const char * value);
+    std::string & getProp(const char * propName, std::string &v);
 
-// get xml node child's content.
-//extern const char * get_xml_node_strfield(xmlNodePtr nd, const char * fieldname);
-//
-//extern int get_xml_node_intfield(xmlNodePtr nd, const char * fieldname);
-//extern bool get_xml_node_intfield(xmlNodePtr nd, const char * fieldname, int * value);
+    bool addChild(CXmlNode child);
 
-// md5 calc
-extern void md5_calc(unsigned char * out, unsigned char * in, unsigned int len);
+    CXmlNode findChild(const char * name) const;
 
-//
-// in_addr_t ip to string
-#define  strip(ip)  inet_ntoa(*((struct in_addr *) &ip))
+    std::string & toString(std::string & strXml);
+};
+/*
+ * a simple wrapper of xmlDocPtr
+ */
+class CXmlDoc
+{
+protected:
+    xmlDocPtr _doc;
+public:
+    CXmlDoc(xmlDocPtr d):_doc(d)
+    {
+    }
+    CXmlDoc():_doc(NULL)
+    {
 
-extern std::string & gb23122utf8(std::string & dst, const char * src);
-extern std::string & utf82gb2312(std::string & dst, const char * src);
+    }
+    ~CXmlDoc()
+    {
+    }
 
-#endif /*COMMON_UTILITY_H_*/
+public:
+    operator xmlDocPtr()
+    {
+        return _doc;
+    }
+
+public:
+    bool isEmpty() const
+    {
+        return (_doc == NULL);
+    }
+    void attach(xmlDocPtr doc)
+    {
+        _doc = doc;
+    }
+    void detach()
+    {
+        _doc = NULL;
+    }
+
+    bool create();
+    bool createFromXmlCdata(const char * xmlstring, int len);
+    void free();
+
+    CXmlNode getRoot();
+    std::string & toString(std::string & strXml);
+};
+#endif /*XML_H_*/
