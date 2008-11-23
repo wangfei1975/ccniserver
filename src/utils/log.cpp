@@ -67,7 +67,7 @@ CLog::~CLog()
     _instance --;
     if (_instance == 0)
     {
-        
+
         pthread_cancel(_pth);
         _pth = 0;
 
@@ -93,6 +93,27 @@ CLog::~CLog()
         fclose(_logfp);
         _logfp = NULL;
     }
+}
+int CLog::print(const char * fmt, ...)
+{
+    LOGITEM * item = new LOGITEM(this);
+    struct timeval tm;
+    gettimeofday(&tm, NULL);
+    localtime_r(&(tm.tv_sec), &(item->logtime));
+    int len = sprintf(item->txt, "%04d-%02d-%02d %02d:%02d:%02d:%03d  ", item->logtime.tm_year+1900,
+            item->logtime.tm_mon+1, item->logtime.tm_mday, item->logtime.tm_hour, item->logtime.tm_min,
+            item->logtime.tm_sec, ((int)tm.tv_usec)/1000);
+    va_list body;
+    va_start(body, fmt);
+    len = vsnprintf(item->txt+len, LOG_BUF_SIZE-len, fmt, body);
+    va_end(body);
+
+    if (!_queue->send(item))
+    {
+        return -1;
+    }
+
+    return len;
 }
 int CLog::print(int level, const char * file, const char * function, int line, const char * fmt, ...)
 {

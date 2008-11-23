@@ -87,6 +87,7 @@ public:
     //build string send to msg queue.
     int print(int level, const char * file, const char * function, int line, const char * fmt, ...);
 
+    int print(const char * fmt, ...);
     //write to file
     void update(LOGITEM * item);
 public:

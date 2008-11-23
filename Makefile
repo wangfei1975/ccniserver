@@ -32,7 +32,7 @@ all :
 	$(MAKE) -C ./src 
 
 tar:clean
-	cd ..;tar -czvf $(PRGNAME).$(DATE).tar.gz ccniserver;cd -
+	cd ..;tar --exclude='.svn' -czvf $(PRGNAME).$(DATE).tar.gz ccniserver;cd -
 
 .PHONY : clean
 clean:

@@ -55,20 +55,31 @@ public:
     bool create();
     void free();
 
-    void attach(xmlNodePtr nd);
+    CXmlNode attach(xmlNodePtr nd);
     void detach();
 
     bool setContent(const char * content);
     std::string & getContent(std::string & v);
+    
+    int           getIntContent();
+    
     bool setName(const char * name);
+    
     bool addProp(const char * propName, const char * value);
     std::string & getProp(const char * propName, std::string &v);
 
     bool addChild(CXmlNode child);
 
     CXmlNode findChild(const char * name) const;
-
+    CXmlNode child() const;
+    CXmlNode next() const;
     std::string & toString(std::string & strXml);
+    
+public:
+    const char * name();
+    xmlElementType type();
+    const char * content();
+    
 };
 /*
  * a simple wrapper of xmlDocPtr
@@ -78,6 +89,7 @@ class CXmlDoc
 protected:
     xmlDocPtr _doc;
 public:
+    
     CXmlDoc(xmlDocPtr d):_doc(d)
     {
     }
@@ -108,7 +120,7 @@ public:
     {
         _doc = NULL;
     }
-
+    bool createFromFile(const char * fname);
     bool create();
     bool createFromXmlCdata(const char * xmlstring, int len);
     void free();
