@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             connection_listener.h                                                   */
+/*             conn_listener.cpp                                                       */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -20,7 +20,18 @@
 /*  histroy                                                                            */
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
-#ifndef CONNECTION_LISTENER_H_
-#define CONNECTION_LISTENER_H_
+#include "conn_listener.h"
 
-#endif /*CONNECTION_LISTENER_H_*/
+bool CConListener::create(const CConfig &cfg)
+{
+     //create udp listen socket.
+     //create tcp listen socket.
+    
+     //create udp listen thread.
+     //create tcp listen thread.
+}
+void CConListener::destroy()
+{
+
+}
+
