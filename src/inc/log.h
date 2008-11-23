@@ -93,7 +93,6 @@ public:
 public:
 
     static CLog * dbgLog();
-    static CLog * evtLog();
 
 private:
     static pthread_t _pth;
@@ -141,16 +140,5 @@ private:
 #define LOGI(...)     {CLog::dbgLog()->print(2, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGD(...)     {CLog::dbgLog()->print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGV(...)     {CLog::dbgLog()->print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-
-/*
- *   business logger
- *            (TBD)
- */
-
-//#define ELOGE(...)     {LOGE(__VA_ARGS__); if(evtLog)evtLog->print(0, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-//#define ELOGW(...)     {LOGW(__VA_ARGS__); if(evtLog)evtLog->print(1, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-//#define ELOGI(...)     {LOGI(__VA_ARGS__); if(evtLog)evtLog->print(2, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-//#define ELOGD(...)     {LOGD(__VA_ARGS__); if(evtLog)evtLog->print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-//#define ELOGV(...)     {LOGV(__VA_ARGS__); if(evtLog)evtLog->print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 
 #endif /*LOG_H_*/

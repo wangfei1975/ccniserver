@@ -126,14 +126,7 @@ int  CXmlNode::getIntContent()
     sscanf(content(), "%d", &v);
     return v;
 }
-const char * CXmlNode::content()
-{
-    if (isEmpty())
-    {
-        return NULL;
-    }
-    return (const char *)xmlNodeGetContent(_node);
-}
+ 
 std::string & CXmlNode::getContent(std::string & v)
 {
     v.clear();
@@ -162,22 +155,8 @@ bool CXmlNode::setContent(const char * content)
     //xmlNodeSetContent(_node, BAD_CAST(gb23122utf8(buf, content).c_str()));
     return true;
 }
-const char * CXmlNode::name()
-{
-    if (isEmpty())
-    {
-        return NULL;
-    }
-    return (const char *)(_node->name);
-}
-xmlElementType CXmlNode::type()
-{
-    if (isEmpty())
-    {
-        return xmlElementType(0);
-    }
-    return _node->type;
-}
+ 
+ 
 bool CXmlNode::setName(const char * name)
 {
     if (isEmpty())
@@ -226,22 +205,7 @@ bool CXmlNode::addChild(CXmlNode child)
     return true;
 
 }
-CXmlNode CXmlNode::child() const
-{
-    if (isEmpty())
-    {
-        return NULL;
-    }
-    return (_node->children);
-}
-CXmlNode CXmlNode::next() const
-{
-    if (isEmpty())
-    {
-        return NULL;
-    }
-    return _node->next;
-}
+ 
 CXmlNode CXmlNode::findChild(const char * name) const
 {
     if (isEmpty())

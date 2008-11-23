@@ -47,9 +47,17 @@ public:
     //  operator 
 public:
 
-    CXmlNode():_node(NULL){}
-    CXmlNode(xmlNodePtr nd):_node(nd){}
-    ~CXmlNode(){}
+    CXmlNode() :
+        _node(NULL)
+    {
+    }
+    CXmlNode(xmlNodePtr nd) :
+        _node(nd)
+    {
+    }
+    ~CXmlNode()
+    {
+    }
 
     bool create(const char * name);
     bool create();
@@ -60,26 +68,42 @@ public:
 
     bool setContent(const char * content);
     std::string & getContent(std::string & v);
-    
-    int           getIntContent();
-    
+
+    int getIntContent();
+
     bool setName(const char * name);
-    
+
     bool addProp(const char * propName, const char * value);
     std::string & getProp(const char * propName, std::string &v);
 
     bool addChild(CXmlNode child);
 
     CXmlNode findChild(const char * name) const;
-    CXmlNode child() const;
-    CXmlNode next() const;
     std::string & toString(std::string & strXml);
-    
+
 public:
-    const char * name();
-    xmlElementType type();
-    const char * content();
-    
+    CXmlNode child() const
+    {
+        return _node->children;
+    }
+    CXmlNode next() const
+    {
+        return _node->next;
+    }
+
+    const char * name() const
+    {
+        return (const char *)(_node->name);
+    }
+    xmlElementType type() const
+    {
+        return  (_node->type);
+    }
+    const char * content() const
+    {
+        return (const char *)xmlNodeGetContent(_node);
+    }
+
 };
 /*
  * a simple wrapper of xmlDocPtr
@@ -89,11 +113,13 @@ class CXmlDoc
 protected:
     xmlDocPtr _doc;
 public:
-    
-    CXmlDoc(xmlDocPtr d):_doc(d)
+
+    CXmlDoc(xmlDocPtr d) :
+        _doc(d)
     {
     }
-    CXmlDoc():_doc(NULL)
+    CXmlDoc() :
+        _doc(NULL)
     {
 
     }
