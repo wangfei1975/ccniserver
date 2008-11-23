@@ -305,19 +305,4 @@ CLog * CLog::dbgLog()
      return log;
      */
 }
-CLog * CLog::evtLog()
-{
-    static CLog * log= NULL;
-    static CMutex mu;
-
-    if (log != NULL)
-    {
-        return log;
-    }
-    CAutoMutex dumy(mu);
-    if (log == NULL)
-    {
-        log = new CLog(dbg_fname, CLog::EVENT_LOG);
-    }
-    return log;
-}
+ 

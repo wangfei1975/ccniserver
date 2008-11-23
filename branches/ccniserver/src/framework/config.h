@@ -37,34 +37,47 @@ class CLogConfig
 {
 public:
     string path;
-    bool   login;
-    bool   logout;
-  
+    bool login;
+    bool logout;
+
 public:
-    CLogConfig(){}
-    CLogConfig(const CLogConfig & c):path(c.path),login(c.login),logout(c.logout){}
+    CLogConfig()
+    {
+    }
+    CLogConfig(const CLogConfig & c) :
+        path(c.path), login(c.login), logout(c.logout)
+    {
+    }
     bool create(CXmlNode nd);
-    
+
 };
 class CConfig
 {
 private:
     CXmlDoc _cfg;
 public:
-    typedef vector<struct sockaddr_in> addrlist_t; 
-    
+    typedef vector<struct sockaddr_in> addrlist_t;
+
     addrlist_t tcplst;
     addrlist_t udplst;
     CLogConfig logcfg;
 public:
+    CConfig() :
+        _cfg(NULL)
+    {
+    }
+    ~CConfig()
+    {
+        destroy();
+    }
+
     bool create(const char * fname);
     void destroy();
-    
+
 private:
-    
+
     bool _parseAddrLst(addrlist_t & lst, CXmlNode nd);
-     
-    
+
 };
 /*
  * xml labels in configuration file.
@@ -77,8 +90,5 @@ private:
 #define xmlPath                     "Path"
 #define xmlLogLogin                 "LogLogin"
 #define xmlLogLogout                "LogLogout"
-
-
-
 
 #endif /*CONFIG_H_*/
