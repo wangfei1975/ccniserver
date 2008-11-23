@@ -53,6 +53,15 @@ bool CXmlDoc::createFromXmlCdata(const char * xmlstring, int len)
     }
     return true;
 }
+bool CXmlDoc::createFromFile(const char * fname)
+{
+    _doc = xmlParseFile(fname);
+    if (_doc == NULL)
+    {
+        return false;
+    }
+    return true;
+}
 CXmlNode CXmlDoc::getRoot()
 {
     CXmlNode nd;
@@ -101,16 +110,30 @@ void CXmlNode::free()
     _node = NULL;
 }
 
-void CXmlNode::attach(xmlNodePtr nd)
+CXmlNode CXmlNode::attach(xmlNodePtr nd)
 {
     _node = nd;
+    return *this;
 }
 
 void CXmlNode::detach()
 {
     _node = NULL;
 }
-
+int  CXmlNode::getIntContent()
+{
+    int v = 0;
+    sscanf(content(), "%d", &v);
+    return v;
+}
+const char * CXmlNode::content()
+{
+    if (isEmpty())
+    {
+        return NULL;
+    }
+    return (const char *)xmlNodeGetContent(_node);
+}
 std::string & CXmlNode::getContent(std::string & v)
 {
     v.clear();
@@ -139,7 +162,22 @@ bool CXmlNode::setContent(const char * content)
     //xmlNodeSetContent(_node, BAD_CAST(gb23122utf8(buf, content).c_str()));
     return true;
 }
-
+const char * CXmlNode::name()
+{
+    if (isEmpty())
+    {
+        return NULL;
+    }
+    return (const char *)(_node->name);
+}
+xmlElementType CXmlNode::type()
+{
+    if (isEmpty())
+    {
+        return xmlElementType(0);
+    }
+    return _node->type;
+}
 bool CXmlNode::setName(const char * name)
 {
     if (isEmpty())
@@ -188,13 +226,27 @@ bool CXmlNode::addChild(CXmlNode child)
     return true;
 
 }
-
-CXmlNode CXmlNode::findChild(const char * name) const
+CXmlNode CXmlNode::child() const
 {
-    CXmlNode nd;
     if (isEmpty())
     {
-        return nd;
+        return NULL;
+    }
+    return (_node->children);
+}
+CXmlNode CXmlNode::next() const
+{
+    if (isEmpty())
+    {
+        return NULL;
+    }
+    return _node->next;
+}
+CXmlNode CXmlNode::findChild(const char * name) const
+{
+    if (isEmpty())
+    {
+        return NULL;
     }
 
     xmlNodePtr child = _node->children;
@@ -204,13 +256,12 @@ CXmlNode CXmlNode::findChild(const char * name) const
         {
             if (strcmp((const char *)child->name, name) == 0)
             {
-                nd.attach(child);
-                return nd;
+                return (child);
             }
         }
         child = child->next;
     }
-    return nd;
+    return NULL;
 }
 
 std::string & CXmlNode::toString(std::string & strXml)

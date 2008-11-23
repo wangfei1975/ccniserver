@@ -22,7 +22,7 @@
         LogLogout log user logout event, default is 1
     -->
    <LogConfig>
-     <Path>bin/logs/</Path>
+     <Path>logs/</Path>
      <LogLogin>1</LogLogin>
      <LogLogout>1</LogLogout>
      <!--TBD-->
