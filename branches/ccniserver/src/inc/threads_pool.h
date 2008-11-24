@@ -28,6 +28,7 @@ using namespace std;
 #include "event.h"
 #include "mutex.h"
 #include "msgqueue.h"
+#include "thread.h"
 
 /*
  * 
@@ -82,13 +83,13 @@ public:
 
 class CThreadsPool;
 
-class CWorkThread
+class CWorkThread : public CThread
 {
 protected:
     CMutex _lk;
 
     CThreadsPool * _boss;
-    pthread_t _thid;
+ 
     bool _exit;
     CEvent _event;
     CJob * _job;
@@ -96,21 +97,19 @@ protected:
     bool _startok;
 public:
     CWorkThread(CThreadsPool * bo) :
-        _boss(bo), _thid(0), _exit(false), _job(NULL), _arg(NULL), _startok(false)
+        _boss(bo),_exit(false), _job(NULL), _arg(NULL), _startok(false)
     {
     }
     ~CWorkThread()
     {
-        deInit();
     }
 public:
 
     void run(CJob * job);
-    bool init()
+    bool create()
     {
-        if (pthread_create(&_thid, NULL, (void *(*)(void*))_fun, this) < 0)
+        if (!CThread::create())
         {
-            _thid = 0;
             return false;
         }
         //make sure the worker thread already startup..
@@ -120,29 +119,16 @@ public:
         }
         return true;
     }
-    void deInit()
-    {
-        if (_thid)
-        {
-            pthread_cancel(_thid);
-            _thid = 0;
-        }
-    }
-
-    void * doWork();
-
-private:
-    static void * _fun(CWorkThread * w)
-    {
-        return w->doWork();
-    }
-
+    
+public:
+    virtual void doWork();
 };
-class CThreadsPool
+
+class CThreadsPool:public CThread
 {
     friend class CWorkThread;
 protected:
-    pthread_t _thid;
+    
     CEvent _event;
     int _threadCount;
     CMsgQueue _queue;
@@ -151,7 +137,7 @@ protected:
     list<CWorkThread *> _idleList;
     list<CWorkThread *> _busyList;
 
-    void * doManagement();
+    
     void moveToIdleList(CWorkThread * w);
 public:
     CThreadsPool()
@@ -163,6 +149,8 @@ public:
     }
 
 public:
+    virtual void doWork();
+    
     bool create(int cnt = 0);
     void destroy();
 
@@ -182,12 +170,8 @@ public:
         _lk.unlock();
         return cnt;
     }
-
-private:
-    static void * _fun(CThreadsPool * mgr)
-    {
-        return mgr->doManagement();
-    }
+ 
+   
 };
 
 #endif /*THREAD_POOL_H_*/

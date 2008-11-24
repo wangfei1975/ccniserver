@@ -134,12 +134,7 @@ std::string & CXmlNode::getContent(std::string & v)
     {
         return v;
     }
-    xmlChar * p = xmlNodeGetContent(_node);
-    if (p)
-    {
-        v = (char *)p;
-        xmlFree(p);
-    }
+    v = content();
     return v;
 
 }

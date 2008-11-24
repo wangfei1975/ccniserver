@@ -41,6 +41,8 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <errno.h>
+#include <sys/epoll.h>
 
 #include "msgqueue.h"
 #include "mutex.h"

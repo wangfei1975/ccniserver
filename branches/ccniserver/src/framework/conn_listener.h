@@ -26,13 +26,27 @@
 #include <map>
 #include "ccni.h"
 #include "config.h"
+#include "log.h"
+#include "udp_listener.h"
+#include "tcp_listener.h"
 
 class CConListener
 {
 private:
-    map<secret_key_t, struct sockaddr_in> _keymap;
+    const CConfig     & _cfg;
+    CThreadsPool      & _pool;
+    CSecKeyMap          _keymap;
+    CUdpListener        _udpListener;
+    CTcpListener        _tcpListener;
 public:
-    bool create(const CConfig &cfg);
+    CConListener(const CConfig & cfg, CThreadsPool & pool) :
+        _cfg(cfg), _pool(pool), _udpListener(cfg, _keymap, pool), _tcpListener(cfg, _keymap, pool)
+    
+    {
+        
+    }
+public:
+    bool create();
     void destroy();
    
 };

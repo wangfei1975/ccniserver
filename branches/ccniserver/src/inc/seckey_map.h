@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             ccni.h                                                                  */
+/*             seckey_map.h                                                            */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -21,49 +21,38 @@
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
 
-#ifndef CCNI_H_
-#define CCNI_H_
-
-
-#include <map>
-
-using namespace std;
+#ifndef SECKEY_MAP_H_
+#define SECKEY_MAP_H_
 #include "log.h"
-typedef uint64_t secret_key_t;
-
-/*
-包头长度      hdlen      1 数据包包头的长度，值为32
-版本号        ver_major  1 主版本号，值为1
-副版本号      ver_minor  1 副版本号，值为0
-数据包类型    type       1 数据段的类刑，0 表示连接请求，1 表示的正常数据包。
-数据长度      data_len   2 包头后面的数据信息的长度，最大为64K
-数据包序列号  seq        4 本数据包的序列号
-用户数据      udata      4 用户数据
-数据包        Key secret 8 用于加密身份验证的Key
-保留          reserved   2 保留，值为0
-*/
-#pragma pack(push, 1)
-struct CCNI_HEADER
+#include "ccni.h"
+class CSecKeyMap
 {
-    uint8_t       hdlen;
-    uint8_t       ver_major;
-    uint8_t       ver_minor;
-    uint8_t       type;
-    uint8_t       datalen;
-    uint32_t      seq;
-    uint32_t      udata;
-    secret_key_t  secret;
-    uint8_t       reserved[10];
-    CCNI_HEADER()
+public:
+    typedef map<secret_key_t, struct sockaddr_in> secret_key_map_t;
+private:
+    secret_key_map_t _map;
+    CMutex _lk;
+public:
+    bool insert(const secret_key_t & k, const struct sockaddr_in & v)
     {
-        memset(this, 0, sizeof(*this));
-        hdlen = sizeof(*this);
-        ver_major = 1;
+        CAutoMutex dumy(_lk);
+        if (_map.find(k) != _map.end())
+        {
+            return false;
+        }
+        _map[k] = v;
+        return true;
+    }
+    secret_key_map_t::iterator find(const secret_key_t & k)
+    {
+        CAutoMutex dumy(_lk);
+        return _map.find(k);
+    }
+    
+    void remove(const secret_key_t & k)
+    {
+        CAutoMutex dumy(_lk);
+        _map.erase(_map.find(k));
     }
 };
-
-#pragma pack(pop)
-
-
-#endif /*CCNI_H_*/
-
+#endif /*SECKEY_MAP_H_*/

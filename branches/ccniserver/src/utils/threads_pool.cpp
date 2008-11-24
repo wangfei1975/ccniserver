@@ -23,7 +23,7 @@
 #include "threads_pool.h"
 #include "log.h"
 
-void * CWorkThread::doWork()
+void CWorkThread::doWork()
 {
     while (!_exit)
     {
@@ -41,7 +41,6 @@ void * CWorkThread::doWork()
         }
         pthread_testcancel();
     }
-    return NULL;
 }
 
 void CWorkThread::run(CJob * job)
@@ -74,7 +73,7 @@ void CThreadsPool::moveToIdleList(CWorkThread * w)
         _event.signal();
     }
 }
-void * CThreadsPool::doManagement()
+void   CThreadsPool::doWork()
 {
     CWorkThread * w;
     while (1)
@@ -95,30 +94,29 @@ void * CThreadsPool::doManagement()
             _busyList.push_front(w);
             _lk.unlock();
             w->run(job);
-            pthread_testcancel();
         }
+        pthread_testcancel();
     }
-    return NULL;
 }
 
 bool CThreadsPool::create(int cnt)
 {
     //TRACEL("init thread pool %d...", cnt);
+
     if (!_queue.create())
     {
         return false;
     }
-    if (pthread_create(&_thid, NULL, (void *(*)(void *))_fun, this) < 0)
+    if (!CThread::create())
     {
         return false;
     }
-
     _threadCount = cnt;
     for (int i = 0; i < cnt; i++)
     {
         CWorkThread * w = new CWorkThread(this);
         _idleList.push_back(w);
-        if (!w->init())
+        if (!w->create())
         {
             return false;
         }
@@ -129,24 +127,18 @@ bool CThreadsPool::create(int cnt)
 
 void CThreadsPool::destroy()
 {
-
-    if (_thid)
-    {
-        pthread_cancel(_thid);
-        _thid = 0;
-    }
-
+    CThread::destroy();
+    
     _lk.lock();
-
     for (list<CWorkThread *>::iterator it = _busyList.begin(); it != _busyList.end(); ++it)
     {
-        (*it)->deInit();
+        (*it)->destroy();
         delete (*it);
     }
     _busyList.clear();
     for (list<CWorkThread *>::iterator it = _idleList.begin(); it != _idleList.end(); ++it)
     {
-        (*it)->deInit();
+        (*it)->destroy();
         delete (*it);
     }
     _idleList.clear();

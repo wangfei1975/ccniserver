@@ -61,6 +61,7 @@ public:
     addrlist_t tcplst;
     addrlist_t udplst;
     CLogConfig logcfg;
+    string     secret;
 public:
     CConfig() :
         _cfg(NULL)
