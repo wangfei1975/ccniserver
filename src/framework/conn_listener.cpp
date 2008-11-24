@@ -22,16 +22,28 @@
 /***************************************************************************************/
 #include "conn_listener.h"
 
-bool CConListener::create(const CConfig &cfg)
+bool CConListener::create()
 {
-     //create udp listen socket.
-     //create tcp listen socket.
+
+    if (_udpListener.create())
+    {
+        LOGE("create udp listener error!\n"); 
+        return false;
+    }
     
-     //create udp listen thread.
-     //create tcp listen thread.
+    if (_tcpListener.create())
+    {
+        LOGE("create tcp listener error!\n");
+        return false;
+    }
+    
+    return true;
+
+    
 }
 void CConListener::destroy()
 {
-
+     _udpListener.destroy();
+     _tcpListener.destroy();
 }
 

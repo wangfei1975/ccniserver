@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             ccni.h                                                                  */
+/*             tcp_listener.h                                                          */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -21,49 +21,69 @@
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
 
-#ifndef CCNI_H_
-#define CCNI_H_
+#ifndef TCP_LISTENER_H_
+#define TCP_LISTENER_H_
 
+#include <sys/types.h>
+#include <sys/socket.h>
 
-#include <map>
-
-using namespace std;
 #include "log.h"
-typedef uint64_t secret_key_t;
+#include "config.h"
+#include "thread.h"
+#include "ccni.h"
+#include "threads_pool.h"
+#include "seckey_map.h"
 
-/*
-包头长度      hdlen      1 数据包包头的长度，值为32
-版本号        ver_major  1 主版本号，值为1
-副版本号      ver_minor  1 副版本号，值为0
-数据包类型    type       1 数据段的类刑，0 表示连接请求，1 表示的正常数据包。
-数据长度      data_len   2 包头后面的数据信息的长度，最大为64K
-数据包序列号  seq        4 本数据包的序列号
-用户数据      udata      4 用户数据
-数据包        Key secret 8 用于加密身份验证的Key
-保留          reserved   2 保留，值为0
-*/
-#pragma pack(push, 1)
-struct CCNI_HEADER
+class CTcpListener : public CThread
 {
-    uint8_t       hdlen;
-    uint8_t       ver_major;
-    uint8_t       ver_minor;
-    uint8_t       type;
-    uint8_t       datalen;
-    uint32_t      seq;
-    uint32_t      udata;
-    secret_key_t  secret;
-    uint8_t       reserved[10];
-    CCNI_HEADER()
+public:
+    class CTcpSockData
     {
-        memset(this, 0, sizeof(*this));
-        hdlen = sizeof(*this);
-        ver_major = 1;
+public:
+        bool islisenter;
+        int fd;
+        CTcpSockData():islisenter(false),fd(-1){}
+    };
+private:
+    int _epfd;
+    const CConfig & _cfg;
+    CSecKeyMap & _smap;
+    CThreadsPool & _pool;
+
+    //we may have more than one listen socket port and ip.
+    vector <CTcpSockData> _fds;
+public:
+    CTcpListener(const CConfig &cfg, CSecKeyMap & smap, CThreadsPool & pool) :
+        _epfd(-1), _cfg(cfg), _smap(smap), _pool(pool)
+    {
+
     }
+    ~CTcpListener()
+    {
+        destroy();
+    }
+
+public:
+    virtual void doWork();
+    bool create();
+    void destroy();
+private:
+    void _doaccept(CTcpSockData * sk);
+    void _doread(CTcpSockData *sk);
+
+private:
+    class CTcpJob : public CJob
+    {
+private:
+        friend class CTcpListener;
+        int _fd;
+
+public:
+        CTcpJob(int fd, void * arg) :
+            CJob(arg), _fd(fd)
+        {
+        }
+        virtual bool run();
+    };
 };
-
-#pragma pack(pop)
-
-
-#endif /*CCNI_H_*/
-
+#endif /*TCP_LISTENER_H_*/

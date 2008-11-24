@@ -101,7 +101,7 @@ public:
     }
     const char * content() const
     {
-        return (const char *)xmlNodeGetContent(_node);
+        return (const char *)(_node->content);
     }
 
 };

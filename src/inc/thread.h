@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             ccni.h                                                                  */
+/*             thread.h                                                                */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -18,52 +18,54 @@
 /*             bjwf       bjwf2000@gmail.com                                           */
 /*                                                                                     */
 /*  histroy                                                                            */
-/*             2008-11-23     initial draft                                            */
+/*             2008-11-25     initial draft                                            */
 /***************************************************************************************/
 
-#ifndef CCNI_H_
-#define CCNI_H_
+#ifndef THREAD_H_
+#define THREAD_H_
 
-
-#include <map>
-
-using namespace std;
-#include "log.h"
-typedef uint64_t secret_key_t;
-
-/*
-包头长度      hdlen      1 数据包包头的长度，值为32
-版本号        ver_major  1 主版本号，值为1
-副版本号      ver_minor  1 副版本号，值为0
-数据包类型    type       1 数据段的类刑，0 表示连接请求，1 表示的正常数据包。
-数据长度      data_len   2 包头后面的数据信息的长度，最大为64K
-数据包序列号  seq        4 本数据包的序列号
-用户数据      udata      4 用户数据
-数据包        Key secret 8 用于加密身份验证的Key
-保留          reserved   2 保留，值为0
-*/
-#pragma pack(push, 1)
-struct CCNI_HEADER
+#include <pthread.h>
+class CThread
 {
-    uint8_t       hdlen;
-    uint8_t       ver_major;
-    uint8_t       ver_minor;
-    uint8_t       type;
-    uint8_t       datalen;
-    uint32_t      seq;
-    uint32_t      udata;
-    secret_key_t  secret;
-    uint8_t       reserved[10];
-    CCNI_HEADER()
+private:
+    pthread_t _thid;
+
+public:
+    
+    virtual void doWork() = 0;
+public:
+    CThread() :
+        _thid(0)
     {
-        memset(this, 0, sizeof(*this));
-        hdlen = sizeof(*this);
-        ver_major = 1;
+    }
+    ~CThread()
+    {
+        destroy();
+    }
+    bool create()
+    {
+        if (pthread_create(&_thid, NULL, (void *(*)(void*))_fun, this) < 0)
+        {
+            _thid = 0;
+            return false;
+        }
+        return true;
+    }
+    void destroy()
+    {
+        if (_thid)
+        {
+            pthread_cancel(_thid);
+            _thid = 0;
+        }
+    }
+
+private:
+    static void * _fun(CThread * w)
+    {
+        w->doWork();
+        return NULL;
     }
 };
 
-#pragma pack(pop)
-
-
-#endif /*CCNI_H_*/
-
+#endif /*THREAD_H_*/

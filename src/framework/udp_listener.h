@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             ccni.h                                                                  */
+/*             udp_listener.h                                                          */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -20,50 +20,84 @@
 /*  histroy                                                                            */
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
+#ifndef UDP_LISTENER_H_
+#define UDP_LISTENER_H_
 
-#ifndef CCNI_H_
-#define CCNI_H_
+#include <sys/types.h>
+#include <sys/socket.h>
 
-
-#include <map>
-
-using namespace std;
 #include "log.h"
-typedef uint64_t secret_key_t;
+#include "config.h"
+#include "thread.h"
+#include "ccni.h"
+#include "threads_pool.h"
+#include "seckey_map.h"
 
-/*
-包头长度      hdlen      1 数据包包头的长度，值为32
-版本号        ver_major  1 主版本号，值为1
-副版本号      ver_minor  1 副版本号，值为0
-数据包类型    type       1 数据段的类刑，0 表示连接请求，1 表示的正常数据包。
-数据长度      data_len   2 包头后面的数据信息的长度，最大为64K
-数据包序列号  seq        4 本数据包的序列号
-用户数据      udata      4 用户数据
-数据包        Key secret 8 用于加密身份验证的Key
-保留          reserved   2 保留，值为0
-*/
-#pragma pack(push, 1)
-struct CCNI_HEADER
+class CUdpListener : public CThread
 {
-    uint8_t       hdlen;
-    uint8_t       ver_major;
-    uint8_t       ver_minor;
-    uint8_t       type;
-    uint8_t       datalen;
-    uint32_t      seq;
-    uint32_t      udata;
-    secret_key_t  secret;
-    uint8_t       reserved[10];
-    CCNI_HEADER()
+public:
+    class CUdpSockData
     {
-        memset(this, 0, sizeof(*this));
-        hdlen = sizeof(*this);
-        ver_major = 1;
+public:
+        int fd;
+        CMutex lk;
+
+        bool sendto(const void * buf, size_t len, const struct sockaddr_in * addr)
+        {
+            CAutoMutex dumy(lk);
+
+            if (::sendto(fd, buf, len, 0, (struct sockaddr *)addr, sizeof(*addr)) < 0)
+            {
+                return false;
+            }
+            return true;
+        }
+    };
+private:
+    friend class CUdpJob;
+    //we may have multiple udp listen sockets on different interfaces or ports.
+    vector <CUdpSockData> _fds;
+    int _epfd;
+
+    //reference of some required informations.
+    const CConfig & _cfg;
+    CSecKeyMap & _smap;
+    CThreadsPool & _pool;
+public:
+    CUdpListener(const CConfig &cfg, CSecKeyMap & smap, CThreadsPool & pool) :
+        _epfd(-1), _cfg(cfg), _smap(smap), _pool(pool)
+    {
     }
+
+    ~CUdpListener()
+    {
+        destroy();
+    }
+
+public:
+    bool create();
+    void destroy();
+    virtual void doWork();
+
+private:
+    void _doread(CUdpSockData * sk);
+
+private:
+    class CUdpJob : public CJob
+    {
+        friend class CUdpListener;
+private:
+        CUdpSockData * _sock;
+        CCNI_HEADER _hd;
+        struct sockaddr_in _addr;
+        
+public:
+        CUdpJob(CUdpSockData * sk, const CCNI_HEADER & hd, const struct sockaddr_in & addr, void * arg) :
+            CJob(arg), _sock(sk), _hd(hd), _addr(addr)
+        {
+        }
+        virtual bool run();
+    };
 };
 
-#pragma pack(pop)
-
-
-#endif /*CCNI_H_*/
-
+#endif /*UDP_LISTENER_H_*/
