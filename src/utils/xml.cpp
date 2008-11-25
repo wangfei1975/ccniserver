@@ -123,18 +123,21 @@ void CXmlNode::detach()
 int  CXmlNode::getIntContent()
 {
     int v = 0;
-    sscanf(content(), "%d", &v);
+    xmlChar * p = xmlNodeGetContent(_node);
+    if (p != NULL)
+    {
+        sscanf((char *)p, "%d", &v);
+    }
+    xmlFree(p);
     return v;
 }
  
 std::string & CXmlNode::getContent(std::string & v)
 {
     v.clear();
-    if (isEmpty())
-    {
-        return v;
-    }
-    v = content();
+    xmlChar * p = xmlNodeGetContent(_node);
+    v = (char *)p;
+    xmlFree(p);
     return v;
 
 }

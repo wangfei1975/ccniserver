@@ -28,19 +28,50 @@
 class CSecKeyMap
 {
 public:
-    typedef map<secret_key_t, struct sockaddr_in> secret_key_map_t;
+    static const unsigned int TIME_OUT = 10; //10 seconds
+    static const unsigned int CLEAN_THRESHOLD = 100;
+    class CItem
+    {
+public:
+        secret_key_t key;
+        struct sockaddr_in addr;
+        time_t tm;
+        CItem()
+        {
+        }
+        CItem(const secret_key_t & k, const struct sockaddr_in & ad, const time_t &t) :
+            key(k), addr(ad), tm(t)
+        {
+
+        }
+    };
+    typedef map<secret_key_t, CItem> secret_key_map_t;
 private:
     secret_key_map_t _map;
     CMutex _lk;
 public:
-    bool insert(const secret_key_t & k, const struct sockaddr_in & v)
+    int size()
     {
         CAutoMutex dumy(_lk);
-        if (_map.find(k) != _map.end())
+        return _map.size();
+    }
+    bool insert(const secret_key_t & k1, const secret_key_t & k2, const struct sockaddr_in & v)
+    {
+        time_t now = time(NULL);
+        secret_key_map_t::iterator it;
+        CAutoMutex dumy(_lk);
+        if (_map.size() > CLEAN_THRESHOLD)
+        {
+            clear_timeouted(now);
+        }
+
+        it = _map.find(k1);
+        if (it != _map.end() && ((time_t)(it->second.tm + TIME_OUT) >= now))
         {
             return false;
         }
-        _map[k] = v;
+
+        _map[k1] = CItem(k2, v, now);
         return true;
     }
     secret_key_map_t::iterator find(const secret_key_t & k)
@@ -48,11 +79,29 @@ public:
         CAutoMutex dumy(_lk);
         return _map.find(k);
     }
-    
+
     void remove(const secret_key_t & k)
     {
         CAutoMutex dumy(_lk);
         _map.erase(_map.find(k));
+    }
+private:
+    void clear_timeouted(time_t now)
+    {
+        secret_key_map_t::iterator it = _map.begin();
+        while (it != _map.end())
+        {
+            if ((time_t)(it->second.tm + TIME_OUT) < now)
+            {
+                secret_key_map_t::iterator tit = it;
+                ++it;
+                _map.erase(tit);
+            }
+            else
+            {
+                ++it;
+            }
+        }
     }
 };
 #endif /*SECKEY_MAP_H_*/

@@ -25,13 +25,13 @@
 bool CConListener::create()
 {
 
-    if (_udpListener.create())
+    if (!_udpListener.create())
     {
         LOGE("create udp listener error!\n"); 
         return false;
     }
-    
-    if (_tcpListener.create())
+    LOGD("create udp listener success.\n");
+    if (!_tcpListener.create())
     {
         LOGE("create tcp listener error!\n");
         return false;

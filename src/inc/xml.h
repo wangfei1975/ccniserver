@@ -99,11 +99,7 @@ public:
     {
         return  (_node->type);
     }
-    const char * content() const
-    {
-        return (const char *)(_node->content);
-    }
-
+   
 };
 /*
  * a simple wrapper of xmlDocPtr

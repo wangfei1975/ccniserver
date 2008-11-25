@@ -28,7 +28,7 @@ bool CUdpListener::create()
 
     CUdpSockData fd;
     _fds.clear();
-
+     
     CConfig::addrlist_t::const_iterator it;
     for (it = _cfg.udplst.begin(); it != _cfg.udplst.end(); ++it)
     {
@@ -51,12 +51,13 @@ bool CUdpListener::create()
         }
         _fds.push_back(fd);
     }
+    LOGD("%d udp socket fds created.\n", _fds.size());
     if ((_epfd = epoll_create(10)) < 0)
     {
         LOGE("create epoll fd error: %s\n", strerror(errno));
         return false;
     }
-
+    LOGD("create create epfd success.\n");
     //add all udp sockets to epoll events.
     struct epoll_event ev;
     for (unsigned int i = 0; i < _fds.size(); i++)
@@ -97,9 +98,10 @@ void CUdpListener::doWork()
 {
     struct epoll_event events[10];
     int nfds;
-
+    LOGD("udp listener thread start waiting...\n");
     while (1)
     {
+       
         if ((nfds = epoll_wait(_epfd, events, 10, -1)) < 0)
         {
             LOGW("epoll wait error: %s\n", strerror(errno));
@@ -141,30 +143,36 @@ void CUdpListener::_doread(CUdpSockData * sk)
 
 bool CUdpListener::CUdpJob::run()
 {
+    LOGD("cudp job run.\n");
+    LOGV("received ucci header from %s:%d is :\n", inet_ntoa(_addr.sin_addr), ntohs(_addr.sin_port));
+    DUMPBIN(&_hd, sizeof(_hd));
+    
     const char * sec = ((CUdpListener *)_arg)->_cfg.secret.c_str();
     int seclen = strlen(sec);
     unsigned char buf[512];
     memcpy(buf, &_addr, sizeof(_addr));
     memcpy(buf + sizeof(_addr), sec, seclen);
-
+    
     //generate secret key.
-    md5_calc((uint8_t *)&(_hd.secret), buf, sizeof(_addr)+seclen);
-
-    //insert {key, addr} to hash map.
+    md5_calc((uint8_t *)&(_hd.secret1), buf, sizeof(_addr)+seclen);
+    LOGD("secret1:%x\n", _hd.secret1);
+ 
     CSecKeyMap & map(((CUdpListener *)_arg)->_smap);
-
-    if (!map.insert(_hd.secret, _addr))
+    
+    if (!map.insert(_hd.secret1, _hd.secret2, _addr))
     {
         LOGE("pair {secret key, addr} alread in map.\n");
         delete this;
         return false;
     }
-
+    LOGV("key map size:%d\n", map.size());
+    LOGV("response ccni header:\n");
+    DUMPBIN(&_hd, sizeof(_hd));
     //send back key.
     if (!_sock->sendto(&_hd, sizeof(_hd), &_addr))
     {
         LOGE("send connect response error: %s\n", strerror(errno));
-        map.remove(_hd.secret);
+        map.remove(_hd.secret1);
         delete this;
         return false;
 
