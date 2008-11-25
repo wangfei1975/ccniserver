@@ -10,9 +10,9 @@ http://ccniserver.googlecode.com/files/CCNIProtolcolWhitePater.pdf
 3. Project source files
 
 ccniserver |-readme.txt
-	   |-docs
-	   |-src
-	   |-bin
+	       |-docs
+	       |-src
+	       |-bin
 
 
 4. Build instructions

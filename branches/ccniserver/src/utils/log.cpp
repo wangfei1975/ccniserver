@@ -94,6 +94,34 @@ CLog::~CLog()
         _logfp = NULL;
     }
 }
+int CLog::dumpbin(void * buf, int len)
+{
+    if (_logLevel < 4)
+    {
+        return 0;
+    }
+    LOGITEM * item = new LOGITEM(this);
+    unsigned char * base = (unsigned char *)buf;
+    int llen = 0, i;
+    for (i = 0; i <len; i++)
+    {
+        llen += snprintf(item->txt+llen, LOG_BUF_SIZE - llen, "%02X ", base[i]);
+        if (((i+1)%16) == 0)
+        {
+            llen += snprintf(item->txt+llen, LOG_BUF_SIZE - llen, "\n");
+        }
+    }
+    if (i%16)
+    {
+        llen += snprintf(item->txt+llen, LOG_BUF_SIZE - llen, "\n");
+    }
+    if (!_queue->send(item))
+    {
+        return -1;
+    }
+
+    return llen;
+}
 int CLog::print(const char * fmt, ...)
 {
     LOGITEM * item = new LOGITEM(this);
@@ -305,4 +333,4 @@ CLog * CLog::dbgLog()
      return log;
      */
 }
- 
+

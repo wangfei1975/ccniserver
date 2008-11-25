@@ -56,7 +56,7 @@
 class CLog
 {
 public:
-    const static int LOG_BUF_SIZE = 1024;
+    const static int LOG_BUF_SIZE = 1024*2;
     const static int DEFAULT_LOGFILE_SIZE = 1024*1024;
     enum LOGTYPE
     {
@@ -90,6 +90,8 @@ public:
     int print(int level, const char * file, const char * function, int line, const char * fmt, ...);
 
     int print(const char * fmt, ...);
+    
+    int dumpbin(void * buf, int len);
     //write to file
     void update(LOGITEM * item);
 public:
@@ -143,4 +145,5 @@ private:
 #define LOGD(...)     {CLog::dbgLog()->print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGV(...)     {CLog::dbgLog()->print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 
+#define DUMPBIN(buf, len) {CLog::dbgLog()->dumpbin(buf, len);}
 #endif /*LOG_H_*/

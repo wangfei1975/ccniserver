@@ -35,16 +35,16 @@ bool CLogConfig::create(CXmlNode nd)
     {
         path = get_executable_path() + path;
     }
-    
+
     path += "ccni.evt.";
-    
-    login  = (nd.findChild(xmlLogLogin).getIntContent() == 1);
+
+    login = (nd.findChild(xmlLogLogin).getIntContent() == 1);
     logout = (nd.findChild(xmlLogLogout).getIntContent() == 1);
-    
+
     LOGD("ccni server event log path: %s\n", path.c_str());
     LOGD("ccni server event log login: %s\n", login ? "True" : "False");
     LOGD("ccni server event log logiout: %s\n", logout ? "True" : "False");
-    
+
     return true;
 }
 
@@ -57,23 +57,23 @@ bool CConfig::create(const char * cfgfname)
     }
 
     CXmlNode root = _cfg.getRoot();
-
+    LOGD("cfg file root name:%s\n", root.name());
     if (strcmp(root.name(), xmlCCNIServerConfiguration) != 0)
     {
         LOGE("error configuration file.\n");
         return false;
     }
-
+    LOGD("parse tcp addr list start.\n");
     if (!_parseAddrLst(tcplst, root.findChild(xmlTCPListenIPList)))
     {
         LOGW("no valid tcp listen list found, using default!\n");
     }
-
+    LOGD("parse udp addr list start.\n");
     if (!_parseAddrLst(udplst, root.findChild(xmlUDPListenIPList)))
     {
         LOGW("no valid udp listen list found, using default!\n");
     }
-
+    
     if (!logcfg.create(root.findChild(xmlLogConfig)))
     {
         LOGW("create log config error!\n");
@@ -84,10 +84,16 @@ bool CConfig::create(const char * cfgfname)
 
 bool CConfig::_parseAddrLst(addrlist_t & lst, CXmlNode nd)
 {
-    const char * ips;
+
+    string ips;
     struct sockaddr_in addr;
     char ipbuf[32];
     int port;
+
+    if (nd.isEmpty())
+    {
+        return false;
+    }
 
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -100,27 +106,29 @@ bool CConfig::_parseAddrLst(addrlist_t & lst, CXmlNode nd)
         {
             continue;
         }
+        LOGD("%s\n", n.name());
         if (strcmp(n.name(), xmlIP) == 0)
         {
-            ips = n.content();
-            const char * p = strstr(ips, ":");
-            if (p == NULL)
+            n.getContent(ips);
+            LOGD("%s\n", ips.c_str());
+            const char * p = strstr(ips.c_str(), ":");
+            if (p == NULL || (p-ips.c_str()) > 16)
             {
-                LOGW("cfg item %s is not a valid IP:PORT string.\n", ips);
+                LOGW("cfg item %s is not a valid IP:PORT string.\n", ips.c_str());
                 continue;
             }
-            strncpy(ipbuf, ips, 32);
-            ipbuf[p-ips] = 0;
+            strncpy(ipbuf, ips.c_str(), 32);
+            ipbuf[p-ips.c_str()] = 0;
 
             if (sscanf(p+1, "%d", &port) != 1)
             {
-                LOGW("cfg item %s not contain a valid port.\n", ips);
+                LOGW("cfg item %s not contain a valid port.\n", ips.c_str());
                 continue;
             }
-
+            LOGD("port is %d\n", (port));
             if (inet_pton(AF_INET, ipbuf, &addr.sin_addr) < 0)
             {
-                LOGW("ip addr %s is not avlid.\n", ips);
+                LOGW("ip addr %s is not avlid.\n", ips.c_str());
                 continue;
             }
             addr.sin_port = htons((uint16_t)port);
