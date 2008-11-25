@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             ccni_xml.h                                                              */
+/*             ccni_msg.h                                                              */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -18,20 +18,48 @@
 /*             bjwf       bjwf2000@gmail.com                                           */
 /*                                                                                     */
 /*  histroy                                                                            */
-/*             2008-11-25     initial draft                                            */
+/*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
 
-#ifndef CCNI_XML_H_
-#define CCNI_XML_H_
-
-#include "log.h"
-#include "xml.h"
+#ifndef CCNI_MSG_H_
+#define CCNI_MSG_H_
 #include "ccni.h"
-class CCNIXmlMsg : public CXmlDoc
+#include "xml.h"
+
+//create ccni msg and write to net.
+class CCNIMsgWriter
 {
 public:
-    bool parse(char * strxml);
-    
-    bool dump(char * buf, int len);
+    bool create();
+    bool appendmsg(const char * label, const char * content);
 };
-#endif /*CCNI_XML_H_*/
+
+//read msg from net & parse.
+class CCNIMsgReader
+{
+private:
+    CCNI_HEADER _hd;
+    unsigned char * _data;
+    
+public:
+    CCNIMsg()_data(NULL){}
+    ~CCNIMsg()
+    {
+       delete []_data;
+       _data = NULL;
+    }
+    bool create(int sockfd)
+    {
+        if (_data)
+        {
+            delete []_data;
+        }
+        //read header.
+        //read _data
+        return true;
+    }
+    // pack from xml msg
+    
+    // generate xml msg 
+};
+#endif /*CCNI_MSG_H_*/
