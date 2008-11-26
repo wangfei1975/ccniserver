@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             ccni.h                                                                  */
+/*             ccni_msg.cpp                                                            */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -18,58 +18,83 @@
 /*             bjwf       bjwf2000@gmail.com                                           */
 /*                                                                                     */
 /*  histroy                                                                            */
-/*             2008-11-23     initial draft                                            */
+/*             2008-11-26     initial draft                                            */
 /***************************************************************************************/
+#include "ccni_msg.h"
 
-#ifndef CCNI_H_
-#define CCNI_H_
-
-#include <map>
-#include "log.h"
-
-#define  CCNI_MAX_LEN   (1024*64)
-using namespace std;
-
-typedef uint64_t secret_key_t;
-
-/*
- * 包头长度      hdlen      1  数据包包头的长度，值为32
- * 版本号        ver_major  1  主版本号，值为1
- * 副版本号      ver_minor  1  副版本号，值为0
- * 数据包类型    type       1  数据段的类刑，0 表示连接请求，1 表示的正常数据包。
- * 数据长度      data_len   2  包头后面的数据信息的长度，最大为64K
- * 数据包序列号  seq        4  本数据包的序列号
- * 用户数据      udata      4  用户数据
- * 数据包        Key secret 16 用于加密身份验证的Key
- * 保留          reserved   2  保留，值为0
- */
-#pragma pack(push, 1)
-struct CCNI_HEADER
+CCNIMsgParser::parse_state_t CCNIMsgParser::read(int sock)
 {
-    uint8_t hdlen;
-    uint8_t ver_major;
-    uint8_t ver_minor;
-    uint8_t type;
-    uint16_t datalen;
-    uint32_t seq;
-    uint32_t udata;
-    secret_key_t secret1;
-    secret_key_t secret2;
-    uint8_t reserved[2];
-    CCNI_HEADER()
+    switch (_state)
     {
-        memset(this, 0, sizeof(*this));
-        hdlen = sizeof(*this);
-        ver_major = 1;
+    case st_init:
+        return _readInit(sock);
+        break;
+    case st_rdhd:
+        return _readRdhd(sock);
+        break;
+    case st_hdok:
+        return _readHdok(sock);
+        break;
+    case st_rdbd:
+        return _readRdbd(sock);
+        break;
+    default:
+        break;
     }
+    return _state;
+}
 
-    bool verify()
+CCNIMsgParser::parse_state_t CCNIMsgParser::_readInit(int sock)
+{
+    int rlen = ::read(sock, &_hd, sizeof(_hd));
+    if (rlen == EAGAIN)
     {
-        return ((hdlen == sizeof(*this)) && (ver_major == 1) && (ver_minor == 0) && (datalen < CCNI_MAX_LEN));
+        return _state;
     }
-};
-
-#pragma pack(pop)
-
-#endif /*CCNI_H_*/
-
+    //rlen == 0 means remote closed connection
+    if (rlen <= 0)
+    {
+       return (_state = st_rderror);
+    }
+    if (rlen < (int)sizeof(_hd))
+    {
+       _pos = rlen;
+       return (_state = st_rdhd);
+    }
+     
+    if (!_hd.verify())
+    {
+        return (_state = st_hderror);;
+    }
+    
+    _data = new unsigned char[_hd.datalen];
+    
+    rlen = ::read(sock, _data, _hd.datalen);
+    if (rlen == EAGAIN)
+    {
+        return (_state = st_rdbd);
+    }
+    if (rlen <= 0)
+    {
+        return (_state = st_rderror);
+    }
+    if (rlen < _hd.datalen)
+    {
+        _pos = rlen;
+        return (_state = st_rdbd);
+    }
+    
+    return (_state = st_bdok);
+}
+CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdhd(int sock)
+{
+    return _state;
+}
+CCNIMsgParser::parse_state_t CCNIMsgParser::_readHdok(int sock)
+{
+    return _state;
+}
+CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdbd(int sock)
+{
+    return _state;
+}

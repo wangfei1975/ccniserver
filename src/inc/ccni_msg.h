@@ -27,7 +27,7 @@
 #include "xml.h"
 
 //create ccni msg and write to net.
-class CCNIMsgWriter
+class CCNIMsgPacker
 {
 public:
     bool create();
@@ -35,31 +35,47 @@ public:
 };
 
 //read msg from net & parse.
-class CCNIMsgReader
+class CCNIMsgParser
 {
+public:
+    enum parse_state_t
+    {
+        st_init,    //initialize state
+        st_rdhd,    //reading msg header, header is not ready. 
+        st_hdok,    //msg header ready. no body.
+        st_rdbd,    //reading msg body.
+        st_bdok,    //msg ok.
+        st_rderror, //read socket error, socket closed or read error.
+        st_hderror, //read a illegal header.
+    };
 private:
     CCNI_HEADER _hd;
     unsigned char * _data;
-    
+    parse_state_t _state;
+    int _pos;
 public:
-    CCNIMsg()_data(NULL){}
-    ~CCNIMsg()
-    {
-       delete []_data;
-       _data = NULL;
-    }
-    bool create(int sockfd)
+    CCNIMsgParser():_data(NULL),_state(st_init),_pos(0)
+    {}
+    ~CCNIMsgParser()
     {
         if (_data)
         {
             delete []_data;
+            _data = NULL;
         }
-        //read header.
-        //read _data
-        return true;
     }
-    // pack from xml msg
+public:
+    /*
+     * read data from non-blocking tcp sock fd
+     *  
+     * */
+    parse_state_t read(int sock);
+private:
+    parse_state_t _readInit(int sock);
+    parse_state_t _readRdhd(int sock); 
+    parse_state_t _readHdok(int sock);
+    parse_state_t _readRdbd(int sock);
     
-    // generate xml msg 
+    
 };
 #endif /*CCNI_MSG_H_*/
