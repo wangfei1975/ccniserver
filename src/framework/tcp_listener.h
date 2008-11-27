@@ -43,9 +43,13 @@ public:
 public:
         bool islisenter;
         int fd;
-        CCNIMsgParser * parser;
-        in_addr_t       peerip;
-        CTcpSockData():islisenter(false),fd(-1),parser(NULL){}
+        in_addr_t peerip;
+        time_t stamp;
+        CCNIMsgParser parser;
+        CTcpSockData(bool is=true, int f=-1, in_addr_t ip=0) :
+            islisenter(is), fd(f), peerip(ip), stamp(time(NULL))
+        {
+        }
     };
 private:
     int _epfd;
@@ -53,7 +57,6 @@ private:
     CSecKeyMap & _smap;
     CThreadsPool & _pool;
 
-    //we may have more than one listen socket port and ip.
     vector <CTcpSockData> _fds;
 public:
     CTcpListener(const CConfig &cfg, CSecKeyMap & smap, CThreadsPool & pool) :
@@ -74,13 +77,37 @@ private:
     void _doaccept(CTcpSockData * sk);
     void _doread(CTcpSockData *sk);
 
+    bool _epollAddSock(CTcpSockData *sk)
+    {
+        struct epoll_event ev;
+        ev.events = EPOLLIN | EPOLLPRI | EPOLLET;
+        ev.data.ptr = sk;
+        if (epoll_ctl(_epfd, EPOLL_CTL_ADD, sk->fd, &ev) < 0)
+        {
+
+            LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
+            close(sk->fd);
+            return false;
+        }
+        return true;
+    }
+    void _epollDelSock(CTcpSockData * sk)
+    {
+        struct epoll_event ev;
+        if (epoll_ctl(_epfd, EPOLL_CTL_DEL, sk->fd, &ev) < 0)
+        {
+            LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
+        }
+    }
+
 private:
     class CTcpJob : public CJob
     {
 private:
         friend class CTcpListener;
         CTcpSockData * _sk;
-
+private:
+      bool doLogin(const struct sockaddr_in & udpaddr);
 public:
         CTcpJob(CTcpSockData * sk, void * arg) :
             CJob(arg), _sk(sk)

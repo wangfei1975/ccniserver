@@ -87,6 +87,9 @@ int main(int argc, char * argv[])
     
     connect(tcpfd, (struct sockaddr *)&tcpraddr, sizeof(tcpraddr));
     
+    close(tcpfd);
+    return 0;
+    
     CCNIMsgPacker msg;
     msg.create();
     CXmlMsg lgmsg;
@@ -96,7 +99,7 @@ int main(int argc, char * argv[])
     lgmsg.addParameter(xmlTagPassword, "hello");
     
     msg.appendmsg(lgmsg);
-    msg.pack(0, 0, rhd.secret1, rhd.secret2);
+    msg.pack(0, 0, rhd.secret1, rhd.secret2+1);
     
     msg.send(tcpfd);
     
