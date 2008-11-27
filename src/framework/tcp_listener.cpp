@@ -139,37 +139,51 @@ void CTcpListener::_doaccept(CTcpSockData * sk)
         LOGE("accept error: %s\n", strerror(errno));
         return;
     }
+    if (set_nonblock(client) < 0)
+    {
+        LOGE("set non block error: %s\n"), strerror(errno));
+        return;
+    }
     CTcpSockData * cli = new CTcpSockData();
     cli->fd = client;
     cli->islisenter = false;
 
     struct epoll_event ev;
-    ev.events = EPOLLIN | EPOLLPRI;
+    ev.events = EPOLLIN | EPOLLPRI | EPOLLET;
     ev.data.ptr = cli;
     if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->fd, &ev) < 0)
     {
-        delete cli;
+      
         LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
+        close(client);
+        delete cli;
     }
 }
 
 void CTcpListener::_doread(CTcpSockData *sk)
 {
     struct epoll_event ev;
-    if (epoll_ctl(_epfd, EPOLL_CTL_DEL, sk->fd, &ev) < 0)
+    if (sk->parser == NULL)
     {
-        LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
+        sk->parser = new CCNIMsgParser();
     }
-    _pool.assign(new CTcpJob(sk->fd, this));
-    delete sk;
+    if (sk->parser->read(sk->fd) == CCNIMsgParser::st_bdok)
+    {
+        if (epoll_ctl(_epfd, EPOLL_CTL_DEL, sk->fd, &ev) < 0)
+        {
+            LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
+        }
+        _pool.assign(new CTcpJob(sk, this));
+
+    }
 }
 
 bool CTcpListener::CTcpJob::run()
 {
-    //read ccni messige.
     //verify secret key.
     //verify login.
-    
+
+    delete _sk;
     delete this;
     return true;
 }

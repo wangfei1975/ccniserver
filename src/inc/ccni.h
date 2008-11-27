@@ -27,7 +27,7 @@
 #include <map>
 #include "log.h"
 
-#define  CCNI_MAX_LEN   (1024*64)
+#define  CCNI_MAX_LEN   (1024*32)
 using namespace std;
 
 typedef uint64_t secret_key_t;

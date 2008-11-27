@@ -24,77 +24,78 @@
 
 CCNIMsgParser::parse_state_t CCNIMsgParser::read(int sock)
 {
-    switch (_state)
+    if (_state == st_rdhd)
     {
-    case st_init:
-        return _readInit(sock);
-        break;
-    case st_rdhd:
         return _readRdhd(sock);
-        break;
-    case st_hdok:
-        return _readHdok(sock);
-        break;
-    case st_rdbd:
+    }
+    if (_state == st_rdbd)
+    {
         return _readRdbd(sock);
-        break;
-    default:
-        break;
     }
     return _state;
 }
 
-CCNIMsgParser::parse_state_t CCNIMsgParser::_readInit(int sock)
+CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdhd(int sock)
 {
-    int rlen = ::read(sock, &_hd, sizeof(_hd));
-    if (rlen == EAGAIN)
+    uint8_t * buf = (uint8_t *)&_hd;
+
+    int rlen =:: read(sock, buf+_pos, sizeof(_hd)-_pos);
+    if (rlen < 0)
     {
-        return _state;
+        if (errno == EAGAIN)
+        {
+            return _state;
+        }
+        return (_state = st_rderror);
     }
     //rlen == 0 means remote closed connection
-    if (rlen <= 0)
+    if (rlen == 0)
     {
-       return (_state = st_rderror);
+        return (_state = st_rderror);
     }
-    if (rlen < (int)sizeof(_hd))
+    //hd not ready,need next read.
+    if (rlen < ((int)sizeof(_hd)-_pos))
     {
-       _pos = rlen;
-       return (_state = st_rdhd);
+        _pos += rlen;
+        return (_state = st_rdhd);
     }
-     
+
+    //read a error header
     if (!_hd.verify())
     {
         return (_state = st_hderror);;
     }
-    
+
+    //header ok, then read body.
     _data = new unsigned char[_hd.datalen];
-    
-    rlen = ::read(sock, _data, _hd.datalen);
-    if (rlen == EAGAIN)
+    _pos = 0;
+    _state = st_rdbd;
+    return _readRdbd(sock);
+}
+
+CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdbd(int sock)
+{
+    int rlen =:: read(sock, _data+_pos, _hd.datalen-_pos);
+    if (rlen < 0)
     {
-        return (_state = st_rdbd);
+        if (errno == EAGAIN)
+        {
+            return _state;
+        }
+        return (_state = st_rderror);
     }
-    if (rlen <= 0)
+
+    if (rlen == 0)
     {
         return (_state = st_rderror);
     }
-    if (rlen < _hd.datalen)
+
+    if (rlen < (_hd.datalen-_pos))
     {
-        _pos = rlen;
+        _pos += rlen;
         return (_state = st_rdbd);
     }
-    
     return (_state = st_bdok);
+
 }
-CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdhd(int sock)
-{
-    return _state;
-}
-CCNIMsgParser::parse_state_t CCNIMsgParser::_readHdok(int sock)
-{
-    return _state;
-}
-CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdbd(int sock)
-{
-    return _state;
-}
+
