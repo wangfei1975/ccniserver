@@ -31,6 +31,7 @@
 #include "config.h"
 #include "thread.h"
 #include "ccni.h"
+#include "ccni_msg.h"
 #include "threads_pool.h"
 #include "seckey_map.h"
 
@@ -42,7 +43,8 @@ public:
 public:
         bool islisenter;
         int fd;
-        CTcpSockData():islisenter(false),fd(-1){}
+        CCNIMsgParser * parser;
+        CTcpSockData():islisenter(false),fd(-1),parser(NULL){}
     };
 private:
     int _epfd;
@@ -76,11 +78,11 @@ private:
     {
 private:
         friend class CTcpListener;
-        int _fd;
+        CTcpSockData _sk;
 
 public:
-        CTcpJob(int fd, void * arg) :
-            CJob(arg), _fd(fd)
+        CTcpJob(CTcpSockData * sk, void * arg) :
+            CJob(arg), _sk(sk)
         {
         }
         virtual bool run();

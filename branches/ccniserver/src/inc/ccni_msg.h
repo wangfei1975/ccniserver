@@ -40,9 +40,7 @@ class CCNIMsgParser
 public:
     enum parse_state_t
     {
-        st_init,    //initialize state
         st_rdhd,    //reading msg header, header is not ready. 
-        st_hdok,    //msg header ready. no body.
         st_rdbd,    //reading msg body.
         st_bdok,    //msg ok.
         st_rderror, //read socket error, socket closed or read error.
@@ -54,7 +52,8 @@ private:
     parse_state_t _state;
     int _pos;
 public:
-    CCNIMsgParser():_data(NULL),_state(st_init),_pos(0)
+
+    CCNIMsgParser():_data(NULL),_state(st_rdhd),_pos(0)
     {}
     ~CCNIMsgParser()
     {
@@ -62,6 +61,8 @@ public:
         {
             delete []_data;
             _data = NULL;
+            _pos = 0;
+            _state = st_rdhd;
         }
     }
 public:
@@ -71,10 +72,9 @@ public:
      * */
     parse_state_t read(int sock);
 private:
-    parse_state_t _readInit(int sock);
+ 
     parse_state_t _readRdhd(int sock); 
-    parse_state_t _readHdok(int sock);
-    parse_state_t _readRdbd(int sock);
+     parse_state_t _readRdbd(int sock);
     
     
 };

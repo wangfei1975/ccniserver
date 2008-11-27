@@ -160,7 +160,16 @@ void run_as_daemon(void (*handler)(int))
     signal(SIGTTIN, SIG_IGN);
    
 }
-
+int set_nonblock(int fd)
+{
+    int fg;
+    if ((fg = fcntl(fd, F_GETFL)) < 0)
+    {
+        return fg;
+    }
+    return fcntl(fd, F_SETFL, fg|O_NONBLOCK);
+    
+}
 int tcp_read(int fd, void * buf, int len)
 {
     int rlen = 0;

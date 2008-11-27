@@ -34,6 +34,8 @@ extern void check_unique_instance(const char * pidfname);
 extern int tcp_read(int sockfd, void * buf, int len);
 extern int tcp_write(int sockfd, void * buf, int len);
 
+extern int set_nonblock(int fd);
+
 // xml parse utilities
 //extern xmlNodePtr get_xml_childnode(xmlNodePtr parent, const char * ndname);
 
