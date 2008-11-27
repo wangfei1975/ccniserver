@@ -21,7 +21,19 @@
 /*             2008-11-26     initial draft                                            */
 /***************************************************************************************/
 #include "ccni_msg.h"
-
+#include "utils.h"
+ bool CCNIMsgPacker::send(int sock)
+ {
+    uint8_t * buf = (uint8_t *)&_hd;
+    tcp_write(sock, buf, 5);
+    usleep(100);
+    tcp_write(sock, buf+5, sizeof(_hd)-5);
+    tcp_write(sock, _data, 2);
+    usleep(100);
+    tcp_write(sock, _data+2, _hd.datalen-2);
+    return true;
+    
+ }
 CCNIMsgParser::parse_state_t CCNIMsgParser::read(int sock)
 {
     if (_state == st_rdhd)
@@ -44,6 +56,7 @@ CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdhd(int sock)
     {
         if (errno == EAGAIN)
         {
+            LOGV("read EAGAIN\n");
             return _state;
         }
         return (_state = st_rderror);
@@ -57,6 +70,7 @@ CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdhd(int sock)
     if (rlen < ((int)sizeof(_hd)-_pos))
     {
         _pos += rlen;
+        LOGV("stat:st_rdhd\n");
         return (_state = st_rdhd);
     }
 
@@ -67,7 +81,7 @@ CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdhd(int sock)
     }
 
     //header ok, then read body.
-    _data = new unsigned char[_hd.datalen];
+    _data = new  char[_hd.datalen+1];
     _pos = 0;
     _state = st_rdbd;
     return _readRdbd(sock);
@@ -80,6 +94,7 @@ CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdbd(int sock)
     {
         if (errno == EAGAIN)
         {
+            LOGV("read EAGAIN\n");
             return _state;
         }
         return (_state = st_rderror);
@@ -93,8 +108,10 @@ CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdbd(int sock)
     if (rlen < (_hd.datalen-_pos))
     {
         _pos += rlen;
+        LOGV("stat:st_rdbd\n");
         return (_state = st_rdbd);
     }
+    _data[_hd.datalen] = 0;
     return (_state = st_bdok);
 
 }

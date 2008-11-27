@@ -91,7 +91,7 @@ public:
 
     int print(const char * fmt, ...);
     
-    int dumpbin(void * buf, int len);
+    int dumpbin(const void * buf, int len);
     //write to file
     void update(LOGITEM * item);
 public:

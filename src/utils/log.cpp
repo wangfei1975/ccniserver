@@ -94,14 +94,14 @@ CLog::~CLog()
         _logfp = NULL;
     }
 }
-int CLog::dumpbin(void * buf, int len)
+int CLog::dumpbin(const void * buf, int len)
 {
     if (_logLevel < 4)
     {
         return 0;
     }
     LOGITEM * item = new LOGITEM(this);
-    unsigned char * base = (unsigned char *)buf;
+    const unsigned char * base = (const unsigned char *)buf;
     int llen = 0, i;
     for (i = 0; i <len; i++)
     {

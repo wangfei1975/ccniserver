@@ -108,7 +108,7 @@ void CTcpListener::doWork()
             pthread_testcancel();
             continue;
         }
-        LOGD("epoll wait events %d\n", nfds);
+        LOGD("epoll wait events: %d\n", nfds);
         for (int i = 0; i < nfds; i++)
         {
             if (!(events[i].events & EPOLLIN) || (events[i].events & EPOLLPRI))
@@ -139,21 +139,23 @@ void CTcpListener::_doaccept(CTcpSockData * sk)
         LOGE("accept error: %s\n", strerror(errno));
         return;
     }
+    LOGD("got connection from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
     if (set_nonblock(client) < 0)
     {
-        LOGE("set non block error: %s\n"), strerror(errno));
+        LOGE("set non block error: %s\n", strerror(errno));
         return;
     }
     CTcpSockData * cli = new CTcpSockData();
     cli->fd = client;
     cli->islisenter = false;
+    cli->peerip = addr.sin_addr.s_addr;
 
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLPRI | EPOLLET;
     ev.data.ptr = cli;
     if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->fd, &ev) < 0)
     {
-      
+
         LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
         close(client);
         delete cli;
@@ -167,24 +169,81 @@ void CTcpListener::_doread(CTcpSockData *sk)
     {
         sk->parser = new CCNIMsgParser();
     }
-    if (sk->parser->read(sk->fd) == CCNIMsgParser::st_bdok)
+    CCNIMsgParser::parse_state_t st = sk->parser->read(sk->fd);
+    if (st == CCNIMsgParser::st_bdok)
     {
+        LOGD("read ccni message ok.\n%s\n", sk->parser->data());
         if (epoll_ctl(_epfd, EPOLL_CTL_DEL, sk->fd, &ev) < 0)
         {
             LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
         }
         _pool.assign(new CTcpJob(sk, this));
+    }
+    else if (st == CCNIMsgParser::st_rderror || st == CCNIMsgParser::st_hderror)
+    {
+        if (epoll_ctl(_epfd, EPOLL_CTL_DEL, sk->fd, &ev) < 0)
+        {
+            LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
+        }
 
+        close(sk->fd);
+        delete sk->parser;
+        delete sk;
     }
 }
 
 bool CTcpListener::CTcpJob::run()
 {
+    CTcpListener * lster = (CTcpListener *)_arg;
+    if (_sk == NULL || _sk->parser == NULL || _sk->parser->state() != CCNIMsgParser::st_bdok)
+    {
+        LOGE("***oops***, bugs here.\n");
+        goto err_end;
+    }
+    LOGD("client secret key:\n");
+    DUMPBIN(&_sk->parser->header(), sizeof(CCNI_HEADER));
     //verify secret key.
-    //verify login.
+    if (!lster->_smap.verifykey(_sk->parser->header().secret1, _sk->parser->header().secret2, _sk->peerip))
+    {
+        LOGW("verify secret key and ip error:%s.\n", strip(_sk->peerip));
+        goto err_end;
+    }
+    //parse xml mesages.
+    if (!_sk->parser->parse())
+    {
+        LOGW("parse xml error.\n");
+        goto err_end;
+    }
+    {
+        CXmlNode msglogin = _sk->parser->getmsg(xmlTagLogin);
+        if (msglogin.isEmpty())
+        {
+            LOGW("first msg is not login msg.\n");
+            goto err_end;
+        }
+        string strxml;
+        LOGD("msg is:\n%s\n", msglogin.toString(strxml).c_str());
+        //verify username and password
+        string username, password;
+        msglogin.findChild(xmlTagUserName).getContent(username);
+        msglogin.findChild(xmlTagPassword).getContent(password);
+       
+        LOGD("uname: %s, password: %s\n", username.c_str(), "****");
 
-    delete _sk;
+        if (username.empty() || password.empty())
+        {
+            LOGW("empty username or password: %s:%s", username.c_str(), "****");
+            goto err_end;
+        }
+        LOGI("user %s login success.\n", username.c_str());
+    }
     delete this;
     return true;
+err_end: 
+    close(_sk->fd);
+    delete _sk->parser;
+    delete _sk;
+    delete this;
+    return false;
 }
 
