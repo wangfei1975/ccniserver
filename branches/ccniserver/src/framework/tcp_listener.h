@@ -44,6 +44,7 @@ public:
         bool islisenter;
         int fd;
         CCNIMsgParser * parser;
+        in_addr_t       peerip;
         CTcpSockData():islisenter(false),fd(-1),parser(NULL){}
     };
 private:
@@ -78,7 +79,7 @@ private:
     {
 private:
         friend class CTcpListener;
-        CTcpSockData _sk;
+        CTcpSockData * _sk;
 
 public:
         CTcpJob(CTcpSockData * sk, void * arg) :

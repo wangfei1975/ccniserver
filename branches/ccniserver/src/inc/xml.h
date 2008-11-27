@@ -149,5 +149,16 @@ public:
 
     CXmlNode getRoot();
     std::string & toString(std::string & strXml);
+    
+    void dump(char * & outbuf, int & len)
+    {
+        xmlChar *xmlbuff;
+        xmlDocDumpFormatMemoryEnc(_doc, &xmlbuff, &len, "UTF-8", 1);
+        outbuf = (char *)xmlbuff;
+    }
+    void setRoot(CXmlNode nd)
+    {
+        xmlDocSetRootElement(_doc, nd);
+    }
 };
 #endif /*XML_H_*/

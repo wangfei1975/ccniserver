@@ -74,12 +74,26 @@ public:
         _map[k1] = CItem(k2, v, now);
         return true;
     }
-    secret_key_map_t::iterator find(const secret_key_t & k)
+    secret_key_map_t::const_iterator find(const secret_key_t & k)
     {
         CAutoMutex dumy(_lk);
         return _map.find(k);
     }
-
+    
+    bool verifykey(const secret_key_t & k1, const secret_key_t & k2, in_addr_t ip)
+    {
+        CAutoMutex dumy(_lk);
+        secret_key_map_t::iterator it = _map.find(k1);
+        if (it == _map.end())
+        {
+            return false;
+        }
+        if (it->second.key != k2 || it->second.addr.sin_addr.s_addr != ip)
+        {
+            return false;
+        }
+        return true;
+    }
     void remove(const secret_key_t & k)
     {
         CAutoMutex dumy(_lk);

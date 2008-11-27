@@ -4,7 +4,7 @@
 
 #include "log.h"
 #include "ccni.h"
-
+#include "ccni_msg.h"
 
 static const char * copyright = "\n" \
                                 "CCNI Simple client 1.0.\n" \
@@ -78,5 +78,28 @@ int main(int argc, char * argv[])
     printf("received header(%d):\n", sizeof(hd));
     dumpbin(&rhd, sizeof(rhd));
     
+    int tcpfd = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in tcpraddr;
+    memset(&tcpraddr, 0, sizeof(tcpraddr));
+    tcpraddr.sin_family = AF_INET;
+    tcpraddr.sin_addr.s_addr = inet_addr(ipbuf);
+    tcpraddr.sin_port = htons(port-1);
+    
+    connect(tcpfd, (struct sockaddr *)&tcpraddr, sizeof(tcpraddr));
+    
+    CCNIMsgPacker msg;
+    msg.create();
+    CXmlMsg lgmsg;
+    lgmsg.create(xmlTagLogin);
+    
+    lgmsg.addParameter(xmlTagUserName, "bjwf2000");
+    lgmsg.addParameter(xmlTagPassword, "hello");
+    
+    msg.appendmsg(lgmsg);
+    msg.pack(0, 0, rhd.secret1, rhd.secret2);
+    
+    msg.send(tcpfd);
+    
     
 }
+

@@ -63,14 +63,12 @@ bool CXmlDoc::createFromFile(const char * fname)
     return true;
 }
 CXmlNode CXmlDoc::getRoot()
-{
-    CXmlNode nd;
+{ 
     if (isEmpty())
     {
-        return nd;
+        return NULL;
     }
-    nd.attach(xmlDocGetRootElement(_doc));
-    return nd;
+    return xmlDocGetRootElement(_doc);
 
 }
 void CXmlDoc::free()
@@ -120,7 +118,7 @@ void CXmlNode::detach()
 {
     _node = NULL;
 }
-int  CXmlNode::getIntContent()
+int CXmlNode::getIntContent()
 {
     int v = 0;
     xmlChar * p = xmlNodeGetContent(_node);
@@ -131,13 +129,16 @@ int  CXmlNode::getIntContent()
     xmlFree(p);
     return v;
 }
- 
+
 std::string & CXmlNode::getContent(std::string & v)
 {
     v.clear();
     xmlChar * p = xmlNodeGetContent(_node);
-    v = (char *)p;
-    xmlFree(p);
+    if (p != NULL)
+    {
+        v = (char *)p;
+        xmlFree(p);
+    }
     return v;
 
 }
@@ -153,8 +154,7 @@ bool CXmlNode::setContent(const char * content)
     //xmlNodeSetContent(_node, BAD_CAST(gb23122utf8(buf, content).c_str()));
     return true;
 }
- 
- 
+
 bool CXmlNode::setName(const char * name)
 {
     if (isEmpty())
@@ -203,7 +203,7 @@ bool CXmlNode::addChild(CXmlNode child)
     return true;
 
 }
- 
+
 CXmlNode CXmlNode::findChild(const char * name) const
 {
     if (isEmpty())
