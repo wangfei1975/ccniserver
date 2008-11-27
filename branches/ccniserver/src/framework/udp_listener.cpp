@@ -169,7 +169,7 @@ bool CUdpListener::CUdpJob::run()
     LOGV("response ccni header:\n");
     DUMPBIN(&_hd, sizeof(_hd));
     //send back key.
-    if (!_sock->sendto(&_hd, sizeof(_hd), &_addr))
+    if (!_sock->sendto(&_hd, sizeof(_hd), &_addr, sizeof(_addr)))
     {
         LOGE("send connect response error: %s\n", strerror(errno));
         map.remove(_hd.secret1);

@@ -25,6 +25,7 @@
 #define SECKEY_MAP_H_
 #include "log.h"
 #include "ccni.h"
+ 
 class CSecKeyMap
 {
 public:
@@ -80,7 +81,7 @@ public:
         return _map.find(k);
     }
     
-    bool verifykey(const secret_key_t & k1, const secret_key_t & k2, in_addr_t ip)
+    bool verifykey(const secret_key_t & k1, const secret_key_t & k2, in_addr_t ip, struct sockaddr_in & udpaddr)
     {
         CAutoMutex dumy(_lk);
         secret_key_map_t::iterator it = _map.find(k1);
@@ -92,6 +93,8 @@ public:
         {
             return false;
         }
+        memcpy(&udpaddr, &(it->second.addr), sizeof(udpaddr));
+        _map.erase(it);
         return true;
     }
     void remove(const secret_key_t & k)

@@ -62,14 +62,10 @@ bool CTcpListener::create()
     }
 
     //add all udp sockets to epoll events.
-    struct epoll_event ev;
     for (unsigned int i = 0; i < _fds.size(); i++)
     {
-        ev.events = EPOLLIN | EPOLLPRI;
-        ev.data.ptr = &_fds[i];
-        if (epoll_ctl(_epfd, EPOLL_CTL_ADD, _fds[i].fd, &ev) < 0)
+        if (!_epollAddSock(&_fds[i]))
         {
-            LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
             return false;
         }
 
@@ -125,6 +121,9 @@ void CTcpListener::doWork()
                 _doread(sk);
             }
         }
+
+        //clear timeouted sockets.
+
         pthread_testcancel();
     }
 }
@@ -145,103 +144,101 @@ void CTcpListener::_doaccept(CTcpSockData * sk)
         LOGE("set non block error: %s\n", strerror(errno));
         return;
     }
-    CTcpSockData * cli = new CTcpSockData();
-    cli->fd = client;
-    cli->islisenter = false;
-    cli->peerip = addr.sin_addr.s_addr;
-
-    struct epoll_event ev;
-    ev.events = EPOLLIN | EPOLLPRI | EPOLLET;
-    ev.data.ptr = cli;
-    if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->fd, &ev) < 0)
+    CTcpSockData * cli = new CTcpSockData(false, client, addr.sin_addr.s_addr);
+    if (!_epollAddSock(cli))
     {
-
-        LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
-        close(client);
         delete cli;
     }
 }
 
 void CTcpListener::_doread(CTcpSockData *sk)
 {
-    struct epoll_event ev;
-    if (sk->parser == NULL)
-    {
-        sk->parser = new CCNIMsgParser();
-    }
-    CCNIMsgParser::parse_state_t st = sk->parser->read(sk->fd);
-    if (st == CCNIMsgParser::st_bdok)
-    {
-        LOGD("read ccni message ok.\n%s\n", sk->parser->data());
-        if (epoll_ctl(_epfd, EPOLL_CTL_DEL, sk->fd, &ev) < 0)
-        {
-            LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
-        }
-        _pool.assign(new CTcpJob(sk, this));
-    }
-    else if (st == CCNIMsgParser::st_rderror || st == CCNIMsgParser::st_hderror)
-    {
-        if (epoll_ctl(_epfd, EPOLL_CTL_DEL, sk->fd, &ev) < 0)
-        {
-            LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
-        }
 
+    CCNIMsgParser::parse_state_t st = sk->parser.read(sk->fd);
+    //read error, remote disconnected.
+    if (st == CCNIMsgParser::st_rderror)
+    {
+        LOGW("remote disconnected. %s\n", strip(sk->peerip));
+        _epollDelSock(sk);
         close(sk->fd);
-        delete sk->parser;
         delete sk;
     }
+    else if (st == CCNIMsgParser::st_hderror)
+    {
+        LOGW("read a invalid ccni header from %s,force close it.\n", strip(sk->peerip));
+        //TBD: add this ip to black list
+        _epollDelSock(sk);
+        close(sk->fd);
+        delete sk;
+    }
+    else if (st == CCNIMsgParser::st_bdok)
+    {
+        LOGD("read ccni message ok.\n%s\n", sk->parser.data());
+        _epollDelSock(sk);
+        _pool.assign(new CTcpJob(sk, this));
+    }
+    else
+    {
+        //nothing to do, just waiting for next epoll triger.
+    }
+}
+bool CTcpListener::CTcpJob::doLogin(const struct sockaddr_in & udpaddr)
+{
+    CXmlNode msglogin = _sk->parser.getmsg(xmlTagLogin);
+    if (msglogin.isEmpty())
+    {
+        LOGW("first msg is not login msg.\n");
+        return false;
+    }
+    string dumy;
+    LOGD("msg is:\n%s\n", msglogin.toString(dumy).c_str());
+    //verify username and password
+    string username, password;
+    msglogin.findChild(xmlTagUserName).getContent(username);
+    msglogin.findChild(xmlTagPassword).getContent(password);
+
+    LOGD("uname: %s, password: %s\n", username.c_str(), "****");
+
+    if (username.empty() || password.empty())
+    {
+        LOGW("empty username or password: %s:%s", username.c_str(), "****");
+        return false;
+    }
+    LOGI("user %s login success.\n", username.c_str());
+    return true;
 }
 
 bool CTcpListener::CTcpJob::run()
 {
     CTcpListener * lster = (CTcpListener *)_arg;
-    if (_sk == NULL || _sk->parser == NULL || _sk->parser->state() != CCNIMsgParser::st_bdok)
-    {
-        LOGE("***oops***, bugs here.\n");
-        goto err_end;
-    }
+
     LOGD("client secret key:\n");
-    DUMPBIN(&_sk->parser->header(), sizeof(CCNI_HEADER));
+    DUMPBIN(&_sk->parser.header(), sizeof(CCNI_HEADER));
+
+    struct sockaddr_in udpaddr;
     //verify secret key.
-    if (!lster->_smap.verifykey(_sk->parser->header().secret1, _sk->parser->header().secret2, _sk->peerip))
+    if (!lster->_smap.verifykey(_sk->parser.header().secret1, _sk->parser.header().secret2, _sk->peerip, udpaddr))
     {
         LOGW("verify secret key and ip error:%s.\n", strip(_sk->peerip));
         goto err_end;
     }
     //parse xml mesages.
-    if (!_sk->parser->parse())
+    if (!_sk->parser.parse())
     {
         LOGW("parse xml error.\n");
         goto err_end;
     }
+    
+    if (!doLogin(udpaddr))
     {
-        CXmlNode msglogin = _sk->parser->getmsg(xmlTagLogin);
-        if (msglogin.isEmpty())
-        {
-            LOGW("first msg is not login msg.\n");
-            goto err_end;
-        }
-        string strxml;
-        LOGD("msg is:\n%s\n", msglogin.toString(strxml).c_str());
-        //verify username and password
-        string username, password;
-        msglogin.findChild(xmlTagUserName).getContent(username);
-        msglogin.findChild(xmlTagPassword).getContent(password);
-       
-        LOGD("uname: %s, password: %s\n", username.c_str(), "****");
-
-        if (username.empty() || password.empty())
-        {
-            LOGW("empty username or password: %s:%s", username.c_str(), "****");
-            goto err_end;
-        }
-        LOGI("user %s login success.\n", username.c_str());
+        LOGW("login error!\n");
+        goto err_end;
     }
+    
     delete this;
     return true;
-err_end: 
-    close(_sk->fd);
-    delete _sk->parser;
+    
+    err_end: close(_sk->fd);
     delete _sk;
     delete this;
     return false;
