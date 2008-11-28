@@ -36,9 +36,8 @@ CFLAG    += $(INC)
 SRCS     := $(wildcard *.cpp)
 OBJS      = $(SRCS:.cpp=.o)
 
-
 TARGET = $(BIN_DIR)$(CCNI_SERVER) 
-LIBS   += $(BIN_DIR)$(CCNI_LIB).a $(BIN_DIR)$(UTILS_LIB).a $(BIN_DIR)$(DBI_LIB).a
+LIBS   += -lsqlite3 $(BIN_DIR)$(CCNI_LIB).a $(BIN_DIR)$(UTILS_LIB).a $(BIN_DIR)$(DBI_LIB).a
 #LIBS += $(BIN_DIR)$(UTILS_LIB).a
 
 .PHONY : all

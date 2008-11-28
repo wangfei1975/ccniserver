@@ -35,7 +35,7 @@ bool CLogConfig::create(CXmlNode nd)
     {
         path = get_executable_path() + path;
     }
-
+   
     path += "ccni.evt.";
 
     login = (nd.findChild(xmlLogLogin).getIntContent() == 1);
@@ -78,8 +78,18 @@ bool CConfig::create(const char * cfgfname)
     {
         LOGW("create log config error!\n");
     }
-    LOGD("create configuration success.\n");
-    return true;
+   
+   if (root.findChild(xmlDBPathName).getContent(dburl).empty())
+   {
+       dburl = get_executable_path();
+       dburl += "db/ccni.db";
+   }
+   if (dburl[0] != '/')
+   {
+       dburl = get_executable_path() + dburl;
+   }
+   LOGD("create configuration success.\n");
+   return true;
 }
 
 bool CConfig::_parseAddrLst(addrlist_t & lst, CXmlNode nd)

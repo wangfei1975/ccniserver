@@ -40,7 +40,7 @@ private:
     CTcpListener        _tcpListener;
 public:
     CConListener(const CConfig & cfg, CThreadsPool & pool) :
-        _cfg(cfg), _pool(pool), _udpListener(cfg, _keymap, pool), _tcpListener(cfg, _keymap, pool)
+        _cfg(cfg), _pool(pool), _keymap(cfg), _udpListener(cfg, _keymap, pool), _tcpListener(cfg, _keymap, pool)
     
     {
         

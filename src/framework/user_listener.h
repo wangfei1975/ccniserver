@@ -24,6 +24,8 @@
 #ifndef USER_LISTENER_H_
 #define USER_LISTENER_H_
 #include <vector>
+
+#include <list>
 #include "log.h"
 #include "config.h"
 #include "thread.h"
@@ -50,7 +52,7 @@ public:
         }
         bool create()
         {
-            if (pipe(pipfd) < 0)
+            if (pipe(_pipfd) < 0)
             {
                 LOGE("create pipe error:%s.\n", strerror(errno));
                 return false;
@@ -86,7 +88,7 @@ public:
                 close(_epfd);
                 close(_pipfd[0]);
                 close(_pipfd[1]);
-                _pipfd[0]=_pipfd[1] = epfd = -1;
+                _pipfd[0]=_pipfd[1] = _epfd = -1;
             }
         }
         void assign(CClient * usr)
@@ -128,7 +130,13 @@ private:
         bool _epollAdd(CClient * cli)
         {
             struct epoll_event ev;
-            ev.events = EPOLLIN | EPOLLPRI | EPOLLET;
+            
+            /*
+             * we use oneshot flag for epoll for client socket.
+             * 
+             * this will ensure 
+             * */
+            ev.events = EPOLLIN | EPOLLPRI | EPOLLONESHOT;
             ev.data.ptr = cli;
             if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->sock(), &ev) < 0)
             {
@@ -158,8 +166,9 @@ public:
         CAutoMutex dumy(_lk);
         it = _ths.begin();
         (*it)->assign(usr);
+        CListenThread * th = *it;
         _ths.erase(it);
-        _ths.push_back(it);
+        _ths.push_back(th);
     }
     bool create(const CConfig & cfg)
     {
@@ -171,8 +180,9 @@ public:
             {
                 return false;
             }
-            _this.push_back(th);
+            _ths.push_back(th);
         }
+        return true;
     }
 
     void destroy()

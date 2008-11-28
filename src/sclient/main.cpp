@@ -86,23 +86,30 @@ int main(int argc, char * argv[])
     tcpraddr.sin_port = htons(port-1);
     
     connect(tcpfd, (struct sockaddr *)&tcpraddr, sizeof(tcpraddr));
-    
-    close(tcpfd);
-    return 0;
-    
+   
     CCNIMsgPacker msg;
     msg.create();
     CXmlMsg lgmsg;
     lgmsg.create(xmlTagLogin);
     
-    lgmsg.addParameter(xmlTagUserName, "bjwf2000");
-    lgmsg.addParameter(xmlTagPassword, "hello");
+    lgmsg.addParameter(xmlTagUserName, "bjwf");
+    lgmsg.addParameter(xmlTagPassword, "123");
     
     msg.appendmsg(lgmsg);
-    msg.pack(0, 0, rhd.secret1, rhd.secret2+1);
+    msg.pack(0, 0, rhd.secret1, rhd.secret2);
     
     msg.send(tcpfd);
     
+    CCNIMsgParser rmsg;
+    CCNIMsgParser::parse_state_t st =    rmsg.read(tcpfd);
+    while (st != CCNIMsgParser::st_bdok)
+    {
+        usleep(10);
+        st = rmsg.read(tcpfd);
+    }
+    rmsg.parse();
+    printf("return msg is\n %s\n", rmsg.data());
     
+    close(tcpfd);
 }
 

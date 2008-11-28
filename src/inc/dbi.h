@@ -37,21 +37,23 @@
  *    . multi-threads safe.
  * */
 
-struct CRecord
-{
-    std::string name;
-    std::string pwd;
-    std::string nicName;
-    std::string lastLoginTime;
-    int score;
-    CRecord() :
-        score(0)
-    {
-    }
-};
+
 
 class CDataBase
 {
+public:
+    struct CRecord
+    {
+        std::string name;
+        std::string pwd;
+        std::string nicName;
+        std::string lastLoginTime;
+        int score;
+        CRecord() :
+            score(0)
+        {
+        }
+    };
 protected:
     CMutex _lk;
     sqlite3 * _db;
