@@ -110,7 +110,7 @@ public:
         LOGV("packed msg is:\n %s\n", _data);
         return true;
     }
- 
+
     bool send(int sock);
 };
 
@@ -140,6 +140,11 @@ public:
     {
     }
     ~CCNIMsgParser()
+    {
+        free();
+    }
+
+    void free()
     {
         _doc.free();
         if (_data)

@@ -48,6 +48,14 @@ private:
 
     }
 public:
+    CThreadsPool & threadsPool()
+    {
+        return _pool;
+    }
+    CDataMgr & dataMgr()
+    {
+        return _dataMgr;
+    }
     CDataBase & db()
     {
         return _dbi;

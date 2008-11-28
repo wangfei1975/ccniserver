@@ -95,37 +95,7 @@ public:
         {
             write(_pipfd[1], &usr, sizeof(usr));
         }
-        virtual void doWork()
-        {
-            struct epoll_event events[10];
-            int nfds;
-            while (1)
-            {
-                if ((nfds = epoll_wait(_epfd, events, 10, -1)) < 0)
-                {
-                    LOGW("epoll wait error: %s\n", strerror(errno));
-                    pthread_testcancel();
-                    continue;
-                }
-                LOGD("epoll wait events: %d\n", nfds);
-                for (int i = 0; i < nfds; i++)
-                {
-                    if (!(events[i].events & EPOLLIN) || (events[i].events & EPOLLPRI))
-                    {
-                        continue;
-                    }
-                    if (events[i].data.ptr == NULL)
-                    {
-                        //add user...
-                        CClient * cli;
-                        read(_pipfd[0], &cli, sizeof(cli));
-                        _epollAdd(cli);
-                    }
-                }
-
-                pthread_testcancel();
-            }
-        }
+        virtual void doWork();
 private:
         bool _epollAdd(CClient * cli)
         {
@@ -138,7 +108,7 @@ private:
              * */
             ev.events = EPOLLIN | EPOLLPRI | EPOLLONESHOT;
             ev.data.ptr = cli;
-            if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->sock(), &ev) < 0)
+            if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->tcpfd(), &ev) < 0)
             {
 
                 LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
@@ -150,7 +120,7 @@ private:
         void _epollDel(CClient * cli)
         {
             struct epoll_event ev;
-            if (epoll_ctl(_epfd, EPOLL_CTL_DEL, cli->sock(), &ev) < 0)
+            if (epoll_ctl(_epfd, EPOLL_CTL_DEL, cli->tcpfd(), &ev) < 0)
             {
                 LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
             }

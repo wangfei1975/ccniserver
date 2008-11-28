@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             config.h                                                                */
+/*             client.cpp                                                              */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -21,81 +21,45 @@
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
 
-#ifndef CONFIG_H_
-#define CONFIG_H_
+#include "client.h"
+#include "engine.h"
 
-#include <stdint.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <string>
-#include <vector>
-
-#include "xml.h"
-
-using namespace std;
-class CLogConfig
+bool CClient::run()
 {
-public:
-    string path;
-    bool login;
-    bool logout;
-    
-public:
-    CLogConfig()
-    {
-    }
-    CLogConfig(const CLogConfig & c) :
-        path(c.path), login(c.login), logout(c.logout)
-    {
-    }
-    bool create(CXmlNode nd);
+    LOGI("user job run.");
 
-};
-class CConfig
-{
-private:
-    CXmlDoc _cfg;
-public:
-    typedef vector<struct sockaddr_in> addrlist_t;
-
-    addrlist_t tcplst;
-    addrlist_t udplst;
-    CLogConfig logcfg;
-    string     secret;
-    string     dburl;
-    unsigned int        pool_threads;
-    unsigned int        usr_listen_threads;
-    unsigned int        login_timeout;
-    unsigned int        secret_timeout;
-public:
-    CConfig() :
-        _cfg(NULL), pool_threads(4), usr_listen_threads(2), login_timeout(5), secret_timeout(5)
+    CCNIMsgParser::parse_state_t st = _curmsg.read(_tcpfd);
+    if (st == CCNIMsgParser::st_rderror)
     {
+        LOGW("remote disconnected. %s\n", inet_ntoa(_udpaddr.sin_addr));
+        CEngine::instance().dataMgr().delClient(this);
+        //tbd: broad cast user NotifyUserLogoff...
+        close(_tcpfd);
+        delete this;
+        return false;
     }
-    ~CConfig()
+    else if (st == CCNIMsgParser::st_hderror)
     {
-        destroy();
+        LOGW("read a invalid ccni header from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
+        CEngine::instance().dataMgr().delClient(this);
+        close(_tcpfd);
+        delete this;
+        return false;
+    }
+    else if (st == CCNIMsgParser::st_bdok)
+    {
+        if (!_curmsg.parse())
+        {
+            LOGW("read a invalid ccni msg from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
+            CEngine::instance().dataMgr().delClient(this);
+            close(_tcpfd);
+            delete this;
+            return false;
+        }
+        
     }
 
-    bool create(const char * fname);
-    void destroy();
+    CEngine::instance().usrListener().assign(this);
+    return true;
+}
 
-private:
-
-    bool _parseAddrLst(addrlist_t & lst, CXmlNode nd);
-
-};
-/*
- * xml labels in configuration file.
- * */
-#define xmlCCNIServerConfiguration  "CCNIServerConfiguration"
-#define xmlTCPListenIPList          "TCPListenIPList"
-#define xmlUDPListenIPList          "UDPListenIPList"
-#define xmlIP                       "IP"
-#define xmlLogConfig                "LogConfig"
-#define xmlPath                     "Path"
-#define xmlLogLogin                 "LogLogin"
-#define xmlLogLogout                "LogLogout"
-#define xmlDBPathName               "DBPathName"
-#define xmlSecret                   "Secret"
-#endif /*CONFIG_H_*/
