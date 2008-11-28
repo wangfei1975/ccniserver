@@ -1,8 +1,5 @@
-#include "log.h"
-#include "utils.h"
-#include "config.h"
-#include "ccni_log.h"
-#include "conn_listener.h"
+#include "engine.h" 
+
 
 static const char * copyright = "\n" \
                                 "CCNI Chinese chess network server version 1.0 for Linux.\n" \
@@ -15,7 +12,7 @@ static const char * CFGFNAME = "ccniserver.conf.xml";
 static void sig_handler(int signal)
 {
     LOGI("daemon received signal %d, shutting down!\n", signal);
-    
+    CEngine::instance().destroy();
     usleep(10);
     exit(0);
 }
@@ -38,40 +35,16 @@ int main(int argc, char * argv[])
     
     string cfgpname(string(get_executable_path())+ CFGFNAME);
     
-    LOGI("loading configuration file %s\n", cfgpname.c_str());
-    CConfig cfg;
-    
-    if (!cfg.create(cfgpname.c_str()))
+    if (!CEngine::instance().create(cfgpname.c_str()))
     {
-        LOGE("create server configuration error!\n");
-        return 0;
-    }
-    LOGD("create cfg success.\n");
-    CCNILog loger(cfg.logcfg);
-    
-    loger.print("%s", copyright);
-    
-    loger.print("server startup success!\n");
-    CThreadsPool pool;
-    if (!pool.create(4))
-    {
-        LOGE("create threads pool error!\n");
-        return 0;
-    }
-    LOGE("create threads pool success.\n");
-    
-    CConListener conListener(cfg, pool);
-    if (!conListener.create())
-    {
-        LOGE("create connection listener error!\n");
+        CEngine::instance().destroy();
+        LOGE("create ccni server engine error.\n");
         return 0;
     }
     
     LOGI("server startup success!\n");
 
-    while(1)
-    {
-       sleep(1);
-    }
+    CEngine::instance().loop();
+    
     return 0;
 }

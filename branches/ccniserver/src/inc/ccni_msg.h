@@ -29,6 +29,12 @@
 class CXmlMsg : public CXmlNode
 {
 public:
+    bool addParameter(const char * paramName, int value)
+    {
+        char sv[16];
+        sprintf(sv, "%d", value);
+        return addParameter(paramName, sv);
+    }
     bool addParameter(const char * paramName, const char * value)
     {
         CXmlNode dn;

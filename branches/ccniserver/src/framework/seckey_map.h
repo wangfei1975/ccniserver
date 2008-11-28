@@ -25,11 +25,12 @@
 #define SECKEY_MAP_H_
 #include "log.h"
 #include "ccni.h"
- 
+#include "config.h" 
+
 class CSecKeyMap
 {
 public:
-    static const unsigned int TIME_OUT = 10; //10 seconds
+   
     static const unsigned int CLEAN_THRESHOLD = 100;
     class CItem
     {
@@ -48,9 +49,15 @@ public:
     };
     typedef map<secret_key_t, CItem> secret_key_map_t;
 private:
+    const CConfig & _cfg;
     secret_key_map_t _map;
     CMutex _lk;
 public:
+    CSecKeyMap(const CConfig & cfg):_cfg(cfg)
+    {
+        
+    }
+     
     int size()
     {
         CAutoMutex dumy(_lk);
@@ -67,7 +74,7 @@ public:
         }
 
         it = _map.find(k1);
-        if (it != _map.end() && ((time_t)(it->second.tm + TIME_OUT) >= now))
+        if (it != _map.end() && ((time_t)(it->second.tm + _cfg.secret_timeout) >= now))
         {
             return false;
         }
@@ -108,7 +115,7 @@ private:
         secret_key_map_t::iterator it = _map.begin();
         while (it != _map.end())
         {
-            if ((time_t)(it->second.tm + TIME_OUT) < now)
+            if ((time_t)(it->second.tm + _cfg.secret_timeout) < now)
             {
                 secret_key_map_t::iterator tit = it;
                 ++it;

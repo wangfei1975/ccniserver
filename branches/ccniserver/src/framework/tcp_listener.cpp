@@ -22,6 +22,7 @@
 /***************************************************************************************/
 #include "tcp_listener.h"
 #include "utils.h"
+#include "engine.h"
 
 bool CTcpListener::create()
 {
@@ -98,13 +99,14 @@ void CTcpListener::doWork()
     CTcpSockData * sk;
     while (1)
     {
-        if ((nfds = epoll_wait(_epfd, events, 10, -1)) < 0)
+        if ((nfds = epoll_wait(_epfd, events, 10, _cfg.login_timeout*1000)) < 0)
         {
             LOGW("epoll wait error: %s\n", strerror(errno));
             pthread_testcancel();
             continue;
         }
-        LOGD("epoll wait events: %d\n", nfds);
+
+        // LOGV("epoll wait events: %d\n", nfds);
         for (int i = 0; i < nfds; i++)
         {
             if (!(events[i].events & EPOLLIN) || (events[i].events & EPOLLPRI))
@@ -204,7 +206,35 @@ bool CTcpListener::CTcpJob::doLogin(const struct sockaddr_in & udpaddr)
         LOGW("empty username or password: %s:%s", username.c_str(), "****");
         return false;
     }
+    CDataBase::CRecord rec;
+    CCNIMsgPacker msg;
+    CXmlMsg lgmsg;
+    msg.create();
+    lgmsg.create(xmlTagLoginRes);
+    const CCNI_HEADER & hd = _sk->parser.header();
+    if (CEngine::instance().db().verifyUser(username.c_str(), password.c_str(), rec) < 0)
+    {
+        LOGW("user name or password error.\n");
+        //send response to ...
+
+
+        lgmsg.addParameter(xmlTagReturnCode, -1);
+        lgmsg.addParameter(xmlTagReturnInfo, "Error user name or password.");
+
+        msg.appendmsg(lgmsg);
+        msg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2);
+        msg.send(_sk->fd);
+
+        return false;
+    }
     LOGI("user %s login success.\n", username.c_str());
+    lgmsg.addParameter(xmlTagReturnCode, 0);
+    lgmsg.addParameter(xmlTagReturnInfo, "Login success.");
+    msg.appendmsg(lgmsg);
+    msg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2);
+    msg.send(_sk->fd);
+    delete _sk;
+
     return true;
 }
 
@@ -228,16 +258,16 @@ bool CTcpListener::CTcpJob::run()
         LOGW("parse xml error.\n");
         goto err_end;
     }
-    
+
     if (!doLogin(udpaddr))
     {
         LOGW("login error!\n");
         goto err_end;
     }
-    
+
     delete this;
     return true;
-    
+
     err_end: close(_sk->fd);
     delete _sk;
     delete this;

@@ -42,6 +42,10 @@ public:
     {
         destroy();
     }
+    void join()
+    {
+        pthread_join(_thid, NULL);
+    }
     bool create()
     {
         if (pthread_create(&_thid, NULL, (void *(*)(void*))_fun, this) < 0)

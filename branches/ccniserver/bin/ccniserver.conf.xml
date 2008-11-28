@@ -28,6 +28,16 @@
      <!--TBD-->
    </LogConfig>
    
+   <LoginTimeOut>5</LoginTimeOut>
+   
+   <SecretKeyTimeOut>5</SecretKeyTimeOut>
+   
+   <PoolThreadCount>4</PoolThreadCount>
+   
+   <UserListenThreadCount>2</UserListenThreadCount>
+   
+   <DBPathName>db/ccni.db</DBPathName>
+   
    <!--
         game rooms
     -->
