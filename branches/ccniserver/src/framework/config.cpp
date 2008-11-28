@@ -88,6 +88,9 @@ bool CConfig::create(const char * cfgfname)
    {
        dburl = get_executable_path() + dburl;
    }
+   
+   root.findChild(xmlSecret).getContent(secret);
+   
    LOGD("create configuration success.\n");
    return true;
 }

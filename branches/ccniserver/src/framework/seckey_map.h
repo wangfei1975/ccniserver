@@ -26,23 +26,25 @@
 #include "log.h"
 #include "ccni.h"
 #include "config.h" 
-
+class CUdpSockData;
 class CSecKeyMap
 {
 public:
-   
+
     static const unsigned int CLEAN_THRESHOLD = 100;
     class CItem
     {
 public:
-        secret_key_t key;
+        secret_key_t   key;
+        CUdpSockData * udp;
         struct sockaddr_in addr;
+
         time_t tm;
         CItem()
         {
         }
-        CItem(const secret_key_t & k, const struct sockaddr_in & ad, const time_t &t) :
-            key(k), addr(ad), tm(t)
+        CItem(const secret_key_t & k, CUdpSockData * u, const struct sockaddr_in & ad, const time_t &t) :
+            key(k), udp(u), addr(ad), tm(t)
         {
 
         }
@@ -53,17 +55,18 @@ private:
     secret_key_map_t _map;
     CMutex _lk;
 public:
-    CSecKeyMap(const CConfig & cfg):_cfg(cfg)
+    CSecKeyMap(const CConfig & cfg) :
+        _cfg(cfg)
     {
-        
+
     }
-     
+
     int size()
     {
         CAutoMutex dumy(_lk);
         return _map.size();
     }
-    bool insert(const secret_key_t & k1, const secret_key_t & k2, const struct sockaddr_in & v)
+    bool insert(const secret_key_t & k1, const secret_key_t & k2, CUdpSockData * u, const struct sockaddr_in & v)
     {
         time_t now = time(NULL);
         secret_key_map_t::iterator it;
@@ -79,7 +82,7 @@ public:
             return false;
         }
 
-        _map[k1] = CItem(k2, v, now);
+        _map[k1] = CItem(k2, u, v, now);
         return true;
     }
     secret_key_map_t::const_iterator find(const secret_key_t & k)
@@ -87,8 +90,9 @@ public:
         CAutoMutex dumy(_lk);
         return _map.find(k);
     }
-    
-    bool verifykey(const secret_key_t & k1, const secret_key_t & k2, in_addr_t ip, struct sockaddr_in & udpaddr)
+
+    bool verifykey(const secret_key_t & k1, const secret_key_t & k2, in_addr_t ip, CUdpSockData * & udp,
+            struct sockaddr_in & udpaddr)
     {
         CAutoMutex dumy(_lk);
         secret_key_map_t::iterator it = _map.find(k1);
@@ -101,6 +105,7 @@ public:
             return false;
         }
         memcpy(&udpaddr, &(it->second.addr), sizeof(udpaddr));
+        udp = it->second.udp;
         _map.erase(it);
         return true;
     }

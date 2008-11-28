@@ -32,11 +32,7 @@
 #include "ccni.h"
 #include "threads_pool.h"
 #include "seckey_map.h"
-
-class CUdpListener : public CThread
-{
-public:
-    class CUdpSockData
+class CUdpSockData
     {
 public:
         int fd;
@@ -53,6 +49,10 @@ public:
             return true;
         }
     };
+class CUdpListener : public CThread
+{
+public:
+    
 private:
     friend class CUdpJob;
     //we may have multiple udp listen sockets on different interfaces or ports.

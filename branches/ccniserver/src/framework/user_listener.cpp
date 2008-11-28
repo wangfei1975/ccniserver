@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             config.h                                                                */
+/*             user_listener.cpp                                                       */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -20,82 +20,40 @@
 /*  histroy                                                                            */
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
+#include "user_listener.h"
+#include "engine.h"
+          void CUserListener::CListenThread::doWork()
+        {
+            struct epoll_event events[10];
+            int nfds;
+            while (1)
+            {
+                if ((nfds = epoll_wait(_epfd, events, 10, -1)) < 0)
+                {
+                    LOGW("epoll wait error: %s\n", strerror(errno));
+                    pthread_testcancel();
+                    continue;
+                }
+                LOGD("epoll wait events: %d\n", nfds);
+                for (int i = 0; i < nfds; i++)
+                {
+                    if (!(events[i].events & EPOLLIN) || (events[i].events & EPOLLPRI))
+                    {
+                        continue;
+                    }
+                    if (events[i].data.ptr == NULL)
+                    {
+                        //add user...
+                        CClient * cli;
+                        read(_pipfd[0], &cli, sizeof(cli));
+                        _epollAdd(cli);
+                    }
+                    else
+                    {
+                        CEngine::instance().threadsPool().assign((CClient *)events[i].data.ptr);
+                    }
+                }
 
-#ifndef CONFIG_H_
-#define CONFIG_H_
-
-#include <stdint.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <string>
-#include <vector>
-
-#include "xml.h"
-
-using namespace std;
-class CLogConfig
-{
-public:
-    string path;
-    bool login;
-    bool logout;
-    
-public:
-    CLogConfig()
-    {
-    }
-    CLogConfig(const CLogConfig & c) :
-        path(c.path), login(c.login), logout(c.logout)
-    {
-    }
-    bool create(CXmlNode nd);
-
-};
-class CConfig
-{
-private:
-    CXmlDoc _cfg;
-public:
-    typedef vector<struct sockaddr_in> addrlist_t;
-
-    addrlist_t tcplst;
-    addrlist_t udplst;
-    CLogConfig logcfg;
-    string     secret;
-    string     dburl;
-    unsigned int        pool_threads;
-    unsigned int        usr_listen_threads;
-    unsigned int        login_timeout;
-    unsigned int        secret_timeout;
-public:
-    CConfig() :
-        _cfg(NULL), pool_threads(4), usr_listen_threads(2), login_timeout(5), secret_timeout(5)
-    {
-    }
-    ~CConfig()
-    {
-        destroy();
-    }
-
-    bool create(const char * fname);
-    void destroy();
-
-private:
-
-    bool _parseAddrLst(addrlist_t & lst, CXmlNode nd);
-
-};
-/*
- * xml labels in configuration file.
- * */
-#define xmlCCNIServerConfiguration  "CCNIServerConfiguration"
-#define xmlTCPListenIPList          "TCPListenIPList"
-#define xmlUDPListenIPList          "UDPListenIPList"
-#define xmlIP                       "IP"
-#define xmlLogConfig                "LogConfig"
-#define xmlPath                     "Path"
-#define xmlLogLogin                 "LogLogin"
-#define xmlLogLogout                "LogLogout"
-#define xmlDBPathName               "DBPathName"
-#define xmlSecret                   "Secret"
-#endif /*CONFIG_H_*/
+                pthread_testcancel();
+            }
+        }

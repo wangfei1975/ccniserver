@@ -28,6 +28,8 @@
      <!--TBD-->
    </LogConfig>
    
+   <Secret>hello</Secret>
+   
    <LoginTimeOut>5</LoginTimeOut>
    
    <SecretKeyTimeOut>5</SecretKeyTimeOut>

@@ -35,6 +35,7 @@
 #include "threads_pool.h"
 #include "seckey_map.h"
 
+class CUdpSockData;
 class CTcpListener : public CThread
 {
 public:
@@ -107,7 +108,7 @@ private:
         friend class CTcpListener;
         CTcpSockData * _sk;
 private:
-      bool doLogin(const struct sockaddr_in & udpaddr);
+      bool doLogin(CUdpSockData * udp, const struct sockaddr_in & udpaddr);
 public:
         CTcpJob(CTcpSockData * sk, void * arg) :
             CJob(arg), _sk(sk)

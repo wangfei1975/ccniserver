@@ -184,7 +184,7 @@ void CTcpListener::_doread(CTcpSockData *sk)
         //nothing to do, just waiting for next epoll triger.
     }
 }
-bool CTcpListener::CTcpJob::doLogin(const struct sockaddr_in & udpaddr)
+bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in & udpaddr)
 {
     CXmlNode msglogin = _sk->parser.getmsg(xmlTagLogin);
     if (msglogin.isEmpty())
@@ -201,23 +201,30 @@ bool CTcpListener::CTcpJob::doLogin(const struct sockaddr_in & udpaddr)
 
     LOGD("uname: %s, password: %s\n", username.c_str(), "****");
 
-    if (username.empty() || password.empty())
-    {
-        LOGW("empty username or password: %s:%s", username.c_str(), "****");
-        return false;
-    }
     CDataBase::CRecord rec;
     CCNIMsgPacker msg;
     CXmlMsg lgmsg;
     msg.create();
     lgmsg.create(xmlTagLoginRes);
     const CCNI_HEADER & hd = _sk->parser.header();
+
+    if (CEngine::instance().dataMgr().findClient(username.c_str()) != NULL)
+    {
+        LOGW("user %s alread login.\n", username.c_str());
+        lgmsg.addParameter(xmlTagReturnCode, -2);
+        lgmsg.addParameter(xmlTagReturnInfo, "User already login.");
+
+        msg.appendmsg(lgmsg);
+        msg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2);
+        msg.send(_sk->fd);
+
+        return false;
+    }
+
     if (CEngine::instance().db().verifyUser(username.c_str(), password.c_str(), rec) < 0)
     {
         LOGW("user name or password error.\n");
         //send response to ...
-
-
         lgmsg.addParameter(xmlTagReturnCode, -1);
         lgmsg.addParameter(xmlTagReturnInfo, "Error user name or password.");
 
@@ -233,8 +240,11 @@ bool CTcpListener::CTcpJob::doLogin(const struct sockaddr_in & udpaddr)
     msg.appendmsg(lgmsg);
     msg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2);
     msg.send(_sk->fd);
-    delete _sk;
 
+    CClient * cli = new CClient(_sk->fd, udp, hd.secret1, hd.secret2, udpaddr, rec);
+    CEngine::instance().dataMgr().addClient(cli);
+    CEngine::instance().usrListener().assign(cli);
+    delete _sk;
     return true;
 }
 
@@ -246,8 +256,9 @@ bool CTcpListener::CTcpJob::run()
     DUMPBIN(&_sk->parser.header(), sizeof(CCNI_HEADER));
 
     struct sockaddr_in udpaddr;
+    CUdpSockData * udp;
     //verify secret key.
-    if (!lster->_smap.verifykey(_sk->parser.header().secret1, _sk->parser.header().secret2, _sk->peerip, udpaddr))
+    if (!lster->_smap.verifykey(_sk->parser.header().secret1, _sk->parser.header().secret2, _sk->peerip, udp, udpaddr))
     {
         LOGW("verify secret key and ip error:%s.\n", strip(_sk->peerip));
         goto err_end;
@@ -259,7 +270,7 @@ bool CTcpListener::CTcpJob::run()
         goto err_end;
     }
 
-    if (!doLogin(udpaddr))
+    if (!doLogin(udp, udpaddr))
     {
         LOGW("login error!\n");
         goto err_end;

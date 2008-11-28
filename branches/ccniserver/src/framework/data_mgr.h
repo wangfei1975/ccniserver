@@ -29,6 +29,19 @@
 class CDataMgr
 {
 public:
+public:
+    CClient * findClient(const char * uname)
+    {
+        return NULL;
+    }
+    bool addClient(CClient * c)
+    {
+        return true;
+    }
+    void delClient(CClient * c)
+    {
+        
+    }
     bool create()
     {
         return true;

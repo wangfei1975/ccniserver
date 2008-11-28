@@ -101,7 +101,6 @@ void CUdpListener::doWork()
     LOGD("udp listener thread start waiting...\n");
     while (1)
     {
-       
         if ((nfds = epoll_wait(_epfd, events, 10, -1)) < 0)
         {
             LOGW("epoll wait error: %s\n", strerror(errno));
@@ -132,19 +131,18 @@ void CUdpListener::_doread(CUdpSockData * sk)
         return;
     }
 
-    if (hd.hdlen != sizeof(hd) || hd.ver_major != 1 || hd.ver_minor != 0 || hd.type != 0)
+    if (!hd.verify())
     {
         LOGW("not valid ccni connect req header, discard.\n");
         return;
     }
     _pool.assign(new CUdpJob(sk, hd, addr, this));
-    
 }
 
 bool CUdpListener::CUdpJob::run()
 {
     LOGD("cudp job run.\n");
-    LOGV("received ucci header from %s:%d is :\n", inet_ntoa(_addr.sin_addr), ntohs(_addr.sin_port));
+    LOGV("received ccni header from %s:%d is :\n", inet_ntoa(_addr.sin_addr), ntohs(_addr.sin_port));
     DUMPBIN(&_hd, sizeof(_hd));
     
     const char * sec = ((CUdpListener *)_arg)->_cfg.secret.c_str();
@@ -159,7 +157,7 @@ bool CUdpListener::CUdpJob::run()
  
     CSecKeyMap & map(((CUdpListener *)_arg)->_smap);
     
-    if (!map.insert(_hd.secret1, _hd.secret2, _addr))
+    if (!map.insert(_hd.secret1, _hd.secret2, _sock, _addr))
     {
         LOGE("pair {secret key, addr} alread in map.\n");
         delete this;
