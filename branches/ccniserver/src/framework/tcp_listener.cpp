@@ -109,7 +109,7 @@ void CTcpListener::doWork()
         // LOGV("epoll wait events: %d\n", nfds);
         for (int i = 0; i < nfds; i++)
         {
-            if (!(events[i].events & EPOLLIN) || (events[i].events & EPOLLPRI))
+            if (!((events[i].events & EPOLLIN) || (events[i].events & EPOLLPRI)))
             {
                 continue;
             }
@@ -192,8 +192,8 @@ bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in
         LOGW("first msg is not login msg.\n");
         return false;
     }
-    string dumy;
-    LOGD("msg is:\n%s\n", msglogin.toString(dumy).c_str());
+  
+    LOGD("msg is:\n%s\n", _sk->parser.data());
     //verify username and password
     string username, password;
     msglogin.findChild(xmlTagUserName).getContent(username);
