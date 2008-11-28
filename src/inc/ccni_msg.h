@@ -66,16 +66,25 @@ private:
     char * _data;
     CXmlDoc _doc;
 public:
+    const char * data()
+    {
+        return _data;
+    }
     CCNIMsgPacker() :
         _data(NULL)
     {
     }
     ~CCNIMsgPacker()
     {
+        free();
+    }
+    void free()
+    {
         _doc.free();
         if (_data)
         {
             xmlFree(_data);
+            _data = NULL;
         }
     }
     bool create()
@@ -107,7 +116,6 @@ public:
         _hd.secret2 = k2;
         _doc.dump(_data, len);
         _hd.datalen = (uint16_t)len;
-        LOGV("packed msg is:\n %s\n", _data);
         return true;
     }
 

@@ -65,7 +65,7 @@ public:
             }
 
             struct epoll_event ev;
-            ev.events = EPOLLIN | EPOLLPRI | EPOLLET;
+            ev.events = EPOLLIN | EPOLLPRI;
             ev.data.ptr = NULL;
             if (epoll_ctl(_epfd, EPOLL_CTL_ADD, _pipfd[0], &ev) < 0)
             {
@@ -73,7 +73,7 @@ public:
                 LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
                 return false;
             }
-
+          
             if (!CThread::create())
             {
                 return false;
@@ -91,28 +91,41 @@ public:
                 _pipfd[0]=_pipfd[1] = _epfd = -1;
             }
         }
-        void assign(CClient * usr)
+        void assign(CClient * usr, int isnew)
         {
             write(_pipfd[1], &usr, sizeof(usr));
+            write(_pipfd[1], &isnew, sizeof(isnew));
         }
         virtual void doWork();
 private:
-        bool _epollAdd(CClient * cli)
+        bool _epollAdd(CClient * cli, int isnew)
         {
             struct epoll_event ev;
-            
+
             /*
              * we use oneshot flag for epoll for client socket.
              * 
              * this will ensure 
              * */
-            ev.events = EPOLLIN | EPOLLPRI | EPOLLONESHOT;
+            ev.events = EPOLLIN | EPOLLPRI |EPOLLONESHOT;
             ev.data.ptr = cli;
-            if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->tcpfd(), &ev) < 0)
+            LOGD("sockfd is %d\n", cli->tcpfd());
+            if (isnew)
             {
+                if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->tcpfd(), &ev) < 0)
+                {
 
-                LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
-                return false;
+                    LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
+                    return false;
+                }
+            }
+            else
+            {
+                if (epoll_ctl(_epfd, EPOLL_CTL_MOD, cli->tcpfd(), &ev) < 0)
+                {
+                    LOGE("epoll ctrl modify fd error: %d %d %s\n", cli->tcpfd(), errno, strerror(errno));
+                    return false;
+                }
             }
             return true;
 
@@ -130,12 +143,12 @@ private:
     list <CListenThread *> _ths;
     CMutex _lk;
 public:
-    void assign(CClient * usr)
+    void assign(CClient * usr, int isnew=1)
     {
         list <CListenThread *>::iterator it;
         CAutoMutex dumy(_lk);
         it = _ths.begin();
-        (*it)->assign(usr);
+        (*it)->assign(usr, isnew);
         CListenThread * th = *it;
         _ths.erase(it);
         _ths.push_back(th);

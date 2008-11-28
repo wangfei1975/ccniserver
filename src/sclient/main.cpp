@@ -110,6 +110,9 @@ int main(int argc, char * argv[])
     rmsg.parse();
     printf("return msg is\n %s\n", rmsg.data());
     
+    msg.send(tcpfd);
+    
+    sleep(1);
     close(tcpfd);
 }
 

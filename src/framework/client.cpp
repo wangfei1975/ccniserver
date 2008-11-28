@@ -26,8 +26,8 @@
 
 bool CClient::run()
 {
-    LOGI("user job run.");
-
+    LOGI("user job run.\n");
+/*
     CCNIMsgParser::parse_state_t st = _curmsg.read(_tcpfd);
     if (st == CCNIMsgParser::st_rderror)
     {
@@ -56,10 +56,11 @@ bool CClient::run()
             delete this;
             return false;
         }
-        
+        LOGI("got a ccni msg:\n%s\n", _curmsg.data());
+        _curmsg.free();
     }
-
-    CEngine::instance().usrListener().assign(this);
+ */
+   // CEngine::instance().usrListener().assign(this, 0);
     return true;
 }
 
