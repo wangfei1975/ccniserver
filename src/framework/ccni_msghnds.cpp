@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             user_listener.cpp                                                       */
+/*             ccni_msghnds.cpp                                                        */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -20,54 +20,88 @@
 /*  histroy                                                                            */
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
-#include "user_listener.h"
+
+#include "client.h"
 #include "engine.h"
-void CUserListener::CListenThread::doWork()
+
+CClient::hndtable_t CClient::msghnds[] =
 {
-    struct epoll_event events[10];
-    int nfds;
-    while (1)
+        {xmlTagCCNI,    &CClient::doCCNI},
+        {xmlTagMyState, &CClient::doMyState},
+        {xmlTagLogout,  &CClient::doLogout},
+        {NULL,          &CClient::doUnknow}
+};
+void CClient::procMsgs(CCNIMsgParser & pmsg)
+{
+    CCNIMsgPacker res, bd;
+    int i;
+    res.create();
+    bd.create();
+    for (CXmlNode msg = pmsg.getfirst(); !msg.isEmpty(); msg = msg.next())
     {
-        if ((nfds = epoll_wait(_epfd, events, 10, -1)) < 0)
+        if (msg.type() != XML_ELEMENT_NODE)
         {
-            LOGW("epoll wait error: %s\n", strerror(errno));
-            pthread_testcancel();
             continue;
         }
-        LOGD("epoll wait events: %d\n", nfds);
-        for (int i = 0; i < nfds; i++)
+        for (i = 0; msghnds[i].label != NULL; i++)
         {
-            //if (!((events[i].events & EPOLLIN) ||(events[i].events & EPOLLPRI)))
+            if (strcmp(msghnds[i].label, msg.name()) == 0)
             {
-            //    continue;
-            }
-            LOGI("event is 0x%x\n", events[i].events);
-            if (events[i].events & EPOLLHUP)
-            {
-                LOGI("epoll hang up...\n");
-               // _epollDel((CClient *)events[i].data.ptr);
-            }
-            else if (events[i].events & EPOLLRDHUP)
-            {
-                LOGI("epoll rd hup.\n");
-            }
-            if (events[i].data.ptr == NULL)
-            {
-               
-                CClient * cli;
-                int isnew;
-                read(_pipfd[0], &cli, sizeof(cli));
-                read(_pipfd[0], &isnew, sizeof(isnew));
-              //  LOGI("addr user %d\n", isnew);
-                _epollAdd(cli, isnew);
-            }
-            else
-            {
-                 _epollDel((CClient *)events[i].data.ptr);
-                 CEngine::instance().threadsPool().assign((CClient *)events[i].data.ptr);
+                break;
             }
         }
-
-        pthread_testcancel();
+        if ((this->*msghnds[i].fun)(msg, res, bd) < 0)
+        {
+            break;
+        }
     }
+ 
+    const CCNI_HEADER & hd(pmsg.header());
+  
+    if (!res.pack(hd.seq, hd.udata, hd.secret1, hd.secret2))
+    {
+        LOGE("pack error..\n");
+    }
+ 
+    res.send(_tcpfd);
+ 
+    
+    res.free();
+ 
+    bd.free();
+  
+    //tbd broad cast...
+}
+
+int CClient::doUnknow(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
+{
+    CXmlMsg lgmsg;
+    lgmsg.create(xmlTagUnknowMessage);
+    res.appendmsg(lgmsg);
+    return 0;
+}
+int CClient::doCCNI(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
+{
+   // LOGV("enter\n");
+    
+    CXmlMsg lgmsg, svrinfo;
+    lgmsg.create(xmlTagCCNIRes);
+    svrinfo.create(xmlTagSeriverInformation);
+    
+    svrinfo.addParameter(xmlTagServerType, "CCNIServer");
+    svrinfo.addParameter(xmlTagServerVersion, "1.0");
+    svrinfo.addParameter(xmlTagCCNIVersion, "1.0");
+    svrinfo.addParameter(xmlTagDescription, "CCNI Chinese Chess Netword server 1.0 for Linux");
+    lgmsg.addChild(svrinfo);
+    res.appendmsg(lgmsg);
+   // LOGV("out\n");
+    return 0;
+}
+int CClient::doMyState(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
+{
+    return 0;
+}
+int CClient::doLogout(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
+{
+    return 0;
 }

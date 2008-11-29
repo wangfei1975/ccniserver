@@ -116,7 +116,7 @@ public:
         _hd.secret2 = k2;
         _doc.dump(_data, len);
         _hd.datalen = (uint16_t)len;
-        return true;
+        return (_data != NULL);
     }
 
     bool send(int sock);
@@ -193,6 +193,11 @@ public:
         }
         return _doc.getRoot().findChild(msgname);
     }
+    CXmlNode getfirst()
+    {
+        return _doc.getRoot().child();
+    }
+ 
     const char * data()
     {
         return _data;

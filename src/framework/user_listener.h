@@ -73,7 +73,7 @@ public:
                 LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
                 return false;
             }
-          
+
             if (!CThread::create())
             {
                 return false;
@@ -107,26 +107,24 @@ private:
              * 
              * this will ensure 
              * */
-            ev.events = EPOLLIN | EPOLLPRI |EPOLLONESHOT;
+            ev.events = EPOLLIN | EPOLLPRI;// | EPOLLET;
             ev.data.ptr = cli;
-            LOGD("sockfd is %d\n", cli->tcpfd());
-            if (isnew)
-            {
-                if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->tcpfd(), &ev) < 0)
-                {
 
-                    LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
-                    return false;
-                }
-            }
-            else
+            if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->tcpfd(), &ev) < 0)
             {
-                if (epoll_ctl(_epfd, EPOLL_CTL_MOD, cli->tcpfd(), &ev) < 0)
-                {
-                    LOGE("epoll ctrl modify fd error: %d %d %s\n", cli->tcpfd(), errno, strerror(errno));
-                    return false;
-                }
+
+                LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
+                return false;
             }
+
+            //            else
+            //            {
+            //                if (epoll_ctl(_epfd, EPOLL_CTL_MOD, cli->tcpfd(), &ev) < 0)
+            //                {
+            //                    LOGE("epoll ctrl modify fd error: %d %d %s\n", cli->tcpfd(), errno, strerror(errno));
+            //                    return false;
+            //                }
+            //            }
             return true;
 
         }
@@ -156,7 +154,7 @@ public:
     bool create(const CConfig & cfg)
     {
         CListenThread * th;
-        for (int i = 0; i < 4; i++)
+        for (unsigned int i = 0; i < cfg.usr_listen_threads; i++)
         {
             th = new CListenThread();
             if (!th->create())
