@@ -117,7 +117,9 @@
 #define xmlTagUnknowMessage             "UnknowMessage"
 
 #define xmlTagSeriverInformation        "SeriverInformation"
-
+#define xmlTagServerType                "ServerType"
+#define xmlTagServerVersion             "ServerVersion"
+#define xmlTagCCNIVersion               "CCNIVersion"
 #define xmlTagRes                       "Res"
 
 #endif /*CCNI_TAGS_H_*/

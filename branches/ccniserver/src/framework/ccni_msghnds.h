@@ -4,10 +4,10 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             client.cpp                                                              */
+/*             ccni_msghnds.h                                                          */
 /*                                                                                     */
 /*  version                                                                            */
-/*             1.0                                   h                                    */
+/*             1.0                                                                     */
 /*                                                                                     */
 /*  description                                                                        */
 /*                                                                                     */
@@ -20,61 +20,22 @@
 /*  histroy                                                                            */
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
+#ifndef CCNI_MSGHNDS_H_
+#define CCNI_MSGHNDS_H_
 
-#include "client.h"
-#include "engine.h"
-
- 
-
-bool CClient::run()
+typedef  int (CClient::*msghnd_t)(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
+struct hndtable_t
 {
-    static int cnt = 0, disccnt = 0, errcnt = 0;
-    static int msgcnt = 0;
-    if (++cnt == 1)
-    {
-        LOGW("user job run %d times.\n",  cnt);
-    }
-  
-    CCNIMsgParser::parse_state_t st = _curmsg.read(_tcpfd);
-    LOGV("read state: %d\n", st);
-    if (st == CCNIMsgParser::st_rderror)
-    {
-        
-        LOGW("remote disconnected. %s %d\n", inet_ntoa(_udpaddr.sin_addr), ++disccnt);
-        LOGW("user job run %d times.\n",  cnt);
-        LOGW("msg count %d times.\n",  msgcnt);
-        CEngine::instance().dataMgr().delClient(this);
-        //tbd: broad cast user NotifyUserLogoff...
-        close(_tcpfd);
-        delete this;
-        return false;
-    }
-    else if (st == CCNIMsgParser::st_hderror)
-    {
-        LOGW("read a invalid ccni header from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
-        CEngine::instance().dataMgr().delClient(this);
-        LOGW("read error cnt:%d\n", ++errcnt);
-        close(_tcpfd);
-        delete this;
-        return false;
-    }
-    else if (st == CCNIMsgParser::st_bdok)
-    {
-        if (!_curmsg.parse())
-        {
-            LOGW("read a invalid ccni msg from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
-            CEngine::instance().dataMgr().delClient(this);
-            close(_tcpfd);
-            delete this; 
-            return false;  
-        }
-        ++msgcnt;
-        LOGV("got a ccni msg:\n%s\n", _curmsg.data());
-        procMsgs(_curmsg);
-        _curmsg.free();
-    }
- 
-    CEngine::instance().usrListener().assign(this, 0);
-    return true;
-}
+    const char * label;
+    msghnd_t     fun;
+};
+static hndtable_t msghnds[];
 
+void procMsgs(CCNIMsgParser & msg);
+int doCCNI(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
+int doMyState(CXmlNode  msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
+int doLogout(CXmlNode  msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
+int doUnknow(CXmlNode  msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
+
+
+#endif /*CCNI_MSGHNDS_H_*/

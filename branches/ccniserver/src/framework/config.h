@@ -69,7 +69,7 @@ public:
     unsigned int        secret_timeout;
 public:
     CConfig() :
-        _cfg(NULL), pool_threads(4), usr_listen_threads(2), login_timeout(5), secret_timeout(5)
+        _cfg(NULL), pool_threads(8), usr_listen_threads(1), login_timeout(5), secret_timeout(5)
     {
     }
     ~CConfig()

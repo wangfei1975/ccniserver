@@ -174,7 +174,9 @@ int CLog::print(int level, const char * file, const char * function, int line, c
     va_start(body, fmt);
     len = vsnprintf(item->txt+len, LOG_BUF_SIZE-len, fmt, body);
     va_end(body);
-
+    
+ 
+    
     if (!_queue->send(item))
     {
         return -1;
@@ -227,9 +229,9 @@ void CLog::update(LOGITEM * item)
 
     }
     if (_type == DEBUG_LOG)
-    {
-        printf(item->txt);
-    }
+        {
+            printf(item->txt);
+        }
     fprintf(_logfp, item->txt);
     fflush(_logfp);
     delete item;

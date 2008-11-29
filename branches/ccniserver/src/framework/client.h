@@ -45,14 +45,16 @@ class CClient:public CJob
 public:
     enum state_t
     {
-        Offline,
-        Online,
-        Idle,
-        Sessional,
-        Ready,
-        Watching,
-        Moving,
-        Pondering,
+        Offline    = 0,
+        Online     = 0x01,
+        Idle       = 0x02,
+        Sessional  = 0x04,
+        Ready      = 0x08,
+        Watching   = 0x10,
+        Moving     = 0x20,
+        Pondering  = 0x40,
+        
+       
     };
 private:
     state_t _state;
@@ -72,6 +74,10 @@ public:
     {
 
     }
+    virtual ~CClient()
+    {
+        _curmsg.free();
+    }
     
 public:
     int tcpfd()
@@ -81,7 +87,7 @@ public:
 
     
 public:
-  
+#include "ccni_msghnds.h"
 public:
     virtual bool run();
    

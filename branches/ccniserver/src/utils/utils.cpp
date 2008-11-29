@@ -178,7 +178,7 @@ int tcp_read(int fd, void * buf, int len)
         int ret = recv(fd, ((char *)buf)+rlen, len-rlen, 0);
         if (ret < 0)
         {
-            printf("recv from %d error!\n", fd);
+            LOGE("recv from %d error: %s!\n", fd, strerror(errno));
             return -1;
         }
         else if (ret == 0)
@@ -196,13 +196,20 @@ int tcp_write(int fd, void * buf, int len)
     int wlen = 0;
     while (wlen < len)
     {
-        int ret = send(fd, ((char *)buf)+wlen, len-wlen, 0);
-        if (ret < 0)
+        int ret = send(fd, ((char *)buf)+wlen, len-wlen, MSG_NOSIGNAL|MSG_DONTWAIT);
+        if (ret <= 0 && errno != EAGAIN)
         {
-            printf("write to %d error!\n", fd);
+            //LOGW("write to %d error: %s!\n", fd, strerror(errno));
             return -1;
         }
-        wlen += ret;
+        if (errno == EAGAIN)
+        {
+            //LOGV("write EAGAIN\n");
+        }
+        if (ret > 0)
+        {
+           wlen += ret;
+        }
     }
     return wlen;
 }
