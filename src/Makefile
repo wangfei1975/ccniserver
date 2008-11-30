@@ -41,11 +41,20 @@ ifndef ($(DEBUG))
 DEBUG = true
 endif
 
+ifeq ($(DEBUG), true) 
+    ifndef ($(LOG_LEVEL))
+        LOG_LEVEL = 5
+    endif
+else
+    ifndef ($(LOG_LEVEL))
+        LOG_LEVEL = 1
+    endif
+endif
 
 ifeq ($(DEBUG), true) 
-CFLAG  = -Wall -pipe -ggdb -D_DEBUG -DLOG_LEVEL=5
+CFLAG  = -Wall -pipe -ggdb -D_DEBUG -DLOG_LEVEL=$(LOG_LEVEL)
 else
-CFLAG  = -Wall -pipe -O3 -DLOG_LEVEL=1
+CFLAG  = -Wall -pipe -O3 -DLOG_LEVEL=$(LOG_LEVEL)
 endif
 
 export CFLAG

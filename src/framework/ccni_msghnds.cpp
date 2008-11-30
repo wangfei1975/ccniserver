@@ -33,6 +33,7 @@ CClient::hndtable_t CClient::msghnds[] =
 };
 void CClient::procMsgs(CCNIMsgParser & pmsg)
 {
+    
     CCNIMsgPacker res, bd;
     int i;
     res.create();
@@ -63,7 +64,7 @@ void CClient::procMsgs(CCNIMsgParser & pmsg)
         LOGE("pack error..\n");
     }
  
-    res.send(_tcpfd);
+   // res.send(_tcpfd);
  
     
     res.free();
