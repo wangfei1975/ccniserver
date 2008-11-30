@@ -118,12 +118,12 @@ int main(int argc, char * argv[])
     {
         msg.send(tcpfd);
 
-        rmsg.free();
-        st = rmsg.read(tcpfd);
-        while (st != CCNIMsgParser::st_bdok)
+       // rmsg.free();
+       // st = rmsg.read(tcpfd);
+      //  while (st != CCNIMsgParser::st_bdok)
         {
             //  usleep(1);
-            st = rmsg.read(tcpfd);
+       //     st = rmsg.read(tcpfd);
         }
        //rmsg.parse();
       //  printf("return msg is\n %s\n", rmsg.data());
