@@ -119,6 +119,7 @@ int CDataBase::verifyUser(const char * name, const char * pwd, CRecord & rec)
     if (ret != SQLITE_OK || pStmt == NULL)
     {
         ret = -1;
+        LOGW("sqlite prepare error.\n");
         goto _End;
     }
 
@@ -145,20 +146,21 @@ int CDataBase::verifyUser(const char * name, const char * pwd, CRecord & rec)
         }
         else
         {
-            LOGI("%s error pwd", name);
+            LOGW("%s error pwd", name);
             ret = -1;
         }
 
     }
     else
     {
-        LOGI("error user name %s!", name);
+        LOGW("error user name %s!", name);
         ret = -1;
     }
 
-    _End: _lk.unlock();
+    _End: 
     sqlite3_reset(pStmt);
     sqlite3_finalize(pStmt);
+    _lk.unlock();
     return ret;
 }
 

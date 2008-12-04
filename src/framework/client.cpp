@@ -70,7 +70,7 @@ bool CClient::run()
         }
         ++msgcnt;
         LOGV("got a ccni msg:\n%s\n", _curmsg.data());
-        procMsgs(_curmsg);
+       // procMsgs(_curmsg);
         _curmsg.free();
     }
  

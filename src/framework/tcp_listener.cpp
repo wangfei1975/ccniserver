@@ -47,7 +47,7 @@ bool CTcpListener::create()
                     inet_ntoa((*it).sin_addr), ntohs((*it).sin_port));
             return false;
         }
-        if (listen(fd.fd, 10) < 0)
+        if (listen(fd.fd, 1000) < 0)
         {
             LOGE("call listen error %s\n", strerror(errno));
             return false;
@@ -56,13 +56,13 @@ bool CTcpListener::create()
         _fds.push_back(fd);
     }
 
-    if ((_epfd = epoll_create(10)) < 0)
+    if ((_epfd = epoll_create(1000)) < 0)
     {
         LOGE("create epoll fd error: %s\n", strerror(errno));
         return false;
     }
 
-    //add all udp sockets to epoll events.
+    //add all tcp sockets to epoll events.
     for (unsigned int i = 0; i < _fds.size(); i++)
     {
         if (!_epollAddSock(&_fds[i]))
@@ -106,10 +106,10 @@ void CTcpListener::doWork()
             continue;
         }
 
-        // LOGV("epoll wait events: %d\n", nfds);
+       //  LOGV("tcp epoll wait events: %d\n", nfds);
         for (int i = 0; i < nfds; i++)
         {
-            if (!((events[i].events & EPOLLIN) || (events[i].events & EPOLLPRI)))
+             if (!((events[i].events & EPOLLIN) || (events[i].events & EPOLLPRI)))
             {
                 continue;
             }
@@ -135,11 +135,14 @@ void CTcpListener::_doaccept(CTcpSockData * sk)
     struct sockaddr_in addr;
     socklen_t len = (socklen_t)sizeof(addr);
     int client = accept(sk->fd, (struct sockaddr *) &addr, &len);
+    static int acccnt = 0;
+   
     if (client < 0)
     {
         LOGE("accept error: %s\n", strerror(errno));
         return;
     }
+    LOGW("account cnt = %d\n", ++acccnt);
     LOGD("got connection from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
     if (set_nonblock(client) < 0)
     {
@@ -244,6 +247,8 @@ bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in
     CClient * cli = new CClient(_sk->fd, udp, hd.secret1, hd.secret2, udpaddr, rec);
     CEngine::instance().dataMgr().addClient(cli);
     CEngine::instance().usrListener().assign(cli);
+    static int ascnt = 0;
+    LOGW("loging succ count:%d\n", ++ascnt);
     delete _sk;
     return true;
 }

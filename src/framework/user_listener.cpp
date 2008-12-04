@@ -41,15 +41,16 @@ void CUserListener::CListenThread::doWork()
             {
             //    continue;
             }
-            LOGI("event is 0x%x\n", events[i].events);
+          //  LOGI("event is 0x%x\n", events[i].events);
+            static int hupcnt = 0;
             if (events[i].events & EPOLLHUP)
             {
-                LOGI("epoll hang up...\n");
+                LOGW("epoll hang up... %d\n", ++hupcnt);
                // _epollDel((CClient *)events[i].data.ptr);
             }
             else if (events[i].events & EPOLLRDHUP)
             {
-                LOGI("epoll rd hup.\n");
+                LOGW("epoll rd hup. %d\n", ++hupcnt);
             }
             if (events[i].data.ptr == NULL)
             {
