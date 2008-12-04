@@ -143,8 +143,11 @@ private:
 public:
     void assign(CClient * usr, int isnew=1)
     {
-        list <CListenThread *>::iterator it;
+      
         CAutoMutex dumy(_lk);
+        
+        list <CListenThread *>::iterator it;
+      
         it = _ths.begin();
         (*it)->assign(usr, isnew);
         CListenThread * th = *it;

@@ -81,7 +81,7 @@ private:
     bool _epollAddSock(CTcpSockData *sk)
     {
         struct epoll_event ev;
-        ev.events = EPOLLIN | EPOLLPRI | EPOLLET;
+        ev.events = EPOLLIN | EPOLLPRI;
         ev.data.ptr = sk;
         if (epoll_ctl(_epfd, EPOLL_CTL_ADD, sk->fd, &ev) < 0)
         {
