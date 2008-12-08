@@ -28,6 +28,7 @@ using namespace std;
 #include "event.h"
 #include "mutex.h"
 #include "msgqueue.h"
+#include "cmsgqueue.h"
 #include "thread.h"
 
 /*
@@ -131,7 +132,7 @@ protected:
     
     CEvent _event;
     int _threadCount;
-    CMsgQueue _queue;
+    CCMsgQueue _queue;
     CMutex _lk;
 
     list<CWorkThread *> _idleList;
@@ -160,7 +161,7 @@ public:
     }
     int getQueuedJobs()
     {
-        return _queue.getQueueMsgCnt();
+        return _queue.getMsgCnt();
     }
     int getBusyCount()
     {

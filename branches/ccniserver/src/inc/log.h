@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <sys/epoll.h>
 
-#include "msgqueue.h"
+#include "cmsgqueue.h"
 #include "mutex.h"
 /*
  * main idea of log system.
@@ -100,7 +100,7 @@ public:
 
 private:
     static pthread_t _pth;
-    static CMsgQueue * _queue;
+    static CCMsgQueue * _queue;
     static int _instance;
 
 private:
