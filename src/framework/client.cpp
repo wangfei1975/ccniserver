@@ -24,57 +24,101 @@
 #include "client.h"
 #include "engine.h"
 
- 
-
-bool CClient::run()
+bool CClient::doread()
 {
-    static int cnt = 0, disccnt = 0, errcnt = 0;
+    static int disccnt = 0, errcnt = 0;
     static int msgcnt = 0;
-    if (++cnt == 1)
-    {
-        LOGW("user job run %d times.\n",  cnt);
-    }
-  
-    CCNIMsgParser::parse_state_t st = _curmsg.read(_tcpfd);
+    CCNIMsgParser::state_t st = _curmsg.read(_tcpfd);
     LOGV("read state: %d\n", st);
     if (st == CCNIMsgParser::st_rderror)
     {
-        
+
         LOGW("remote disconnected. %s %d\n", inet_ntoa(_udpaddr.sin_addr), ++disccnt);
-        LOGW("user job run %d times.\n",  cnt);
-        LOGW("msg count %d times.\n",  msgcnt);
-        CEngine::instance().dataMgr().delClient(this);
+        LOGW("msg count %d times.\n", msgcnt);
+
         //tbd: broad cast user NotifyUserLogoff...
-        close(_tcpfd);
-        delete this;
+
         return false;
     }
-    else if (st == CCNIMsgParser::st_hderror)
+
+    if (st == CCNIMsgParser::st_hderror)
     {
         LOGW("read a invalid ccni header from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
-        CEngine::instance().dataMgr().delClient(this);
+
         LOGW("read error cnt:%d\n", ++errcnt);
-        close(_tcpfd);
-        delete this;
+
         return false;
     }
-    else if (st == CCNIMsgParser::st_bdok)
+    if (st == CCNIMsgParser::st_rdbd || CCNIMsgParser::st_rdhd)
     {
-        if (!_curmsg.parse())
-        {
-            LOGW("read a invalid ccni msg from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
-            CEngine::instance().dataMgr().delClient(this);
-            close(_tcpfd);
-            delete this; 
-            return false;  
-        }
-        ++msgcnt;
-        LOGV("got a ccni msg:\n%s\n", _curmsg.data());
-       // procMsgs(_curmsg);
-        _curmsg.free();
+        //just waiting for next read.
+        return true;
     }
- 
-    CEngine::instance().usrListener().assign(this, 0);
+
+    // if (st == CCNIMsgParser::st_bdok) //got a complete message
+    if (!_curmsg.parse())
+    {
+        LOGW("read a invalid ccni msg from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
+        return false;
+    }
+    ++msgcnt;
+    _pstate = st_sending;
+    LOGV("got a ccni msg:\n%s\n", _curmsg.data());
+    CCNIMsgPacker bd;
+
+    procMsgs(_curmsg, _resmsg, bd);
+
+    return dosend();
+}
+
+bool CClient::dosend()
+{
+    CCNIMsgPacker::state_t st = _resmsg.send(_tcpfd);
+    if (st == CCNIMsgPacker::st_sderror)
+    {
+        LOGW("send error.\n");
+
+        return false;
+    }
+    if (st == CCNIMsgPacker::st_sdok)
+    {
+        LOGV("send ok.\n");
+        _pstate = st_reading;
+        _resmsg.free();
+        _curmsg.free();
+        return true;
+    }
     return true;
+}
+bool CClient::run()
+{
+    static int cnt = 0;
+    if (++cnt == 1)
+    {
+        LOGW("user job run %d times.\n", cnt);
+    }
+    bool ret;
+    if (_pstate == st_reading)
+    {
+        ret = doread();
+    }
+    else
+    {
+        ret = dosend();
+    }
+    if (ret)
+    {
+        LOGV("_psate = %s\n", _pstate == st_reading ? "reading":"sending");
+        CEngine::instance().usrListener().assign(this, (_pstate == st_reading) ? 1 : 0);
+    }
+    else
+    {
+        CEngine::instance().dataMgr().delClient(this);
+        _resmsg.free();
+        _curmsg.free();
+        close(_tcpfd);
+        delete this;
+    }
+    return ret;
 }
 

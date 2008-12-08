@@ -91,14 +91,14 @@ public:
                 _pipfd[0]=_pipfd[1] = _epfd = -1;
             }
         }
-        void assign(CClient * usr, int isnew)
+        void assign(CClient * usr, int isread)
         {
             write(_pipfd[1], &usr, sizeof(usr));
-            write(_pipfd[1], &isnew, sizeof(isnew));
+            write(_pipfd[1], &isread, sizeof(isread));
         }
         virtual void doWork();
 private:
-        bool _epollAdd(CClient * cli, int isnew)
+        bool _epollAdd(CClient * cli, int isread)
         {
             struct epoll_event ev;
 
@@ -107,7 +107,14 @@ private:
              * 
              * this will ensure 
              * */
-            ev.events = EPOLLIN | EPOLLPRI;// | EPOLLET;
+            if (isread == 1)
+            {
+               ev.events = EPOLLIN | EPOLLPRI ;// | EPOLLET;
+            }
+            else
+            {
+               ev.events = EPOLLOUT;
+            }
             ev.data.ptr = cli;
 
             if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->tcpfd(), &ev) < 0)
@@ -141,7 +148,7 @@ private:
     list <CListenThread *> _ths;
     CMutex _lk;
 public:
-    void assign(CClient * usr, int isnew=1)
+    void assign(CClient * usr, int isread=1)
     {
       
         CAutoMutex dumy(_lk);
@@ -149,7 +156,7 @@ public:
         list <CListenThread *>::iterator it;
       
         it = _ths.begin();
-        (*it)->assign(usr, isnew);
+        (*it)->assign(usr, isread);
         CListenThread * th = *it;
         _ths.erase(it);
         _ths.push_back(th);

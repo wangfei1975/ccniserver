@@ -159,7 +159,7 @@ void CTcpListener::_doaccept(CTcpSockData * sk)
 void CTcpListener::_doread(CTcpSockData *sk)
 {
 
-    CCNIMsgParser::parse_state_t st = sk->parser.read(sk->fd);
+    CCNIMsgParser::state_t st = sk->parser.read(sk->fd);
     //read error, remote disconnected.
     if (st == CCNIMsgParser::st_rderror)
     {
@@ -176,7 +176,7 @@ void CTcpListener::_doread(CTcpSockData *sk)
         close(sk->fd);
         delete sk;
     }
-    else if (st == CCNIMsgParser::st_bdok)
+    else if (st == CCNIMsgParser::st_rdok)
     {
         LOGD("read ccni message ok.\n%s\n", sk->parser.data());
         _epollDelSock(sk);
@@ -219,7 +219,7 @@ bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in
 
         msg.appendmsg(lgmsg);
         msg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2);
-        msg.send(_sk->fd);
+        msg.block_send(_sk->fd);
 
         return false;
     }
@@ -233,16 +233,18 @@ bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in
 
         msg.appendmsg(lgmsg);
         msg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2);
-        msg.send(_sk->fd);
+        msg.block_send(_sk->fd);
 
         return false;
     }
     LOGI("user %s login success.\n", username.c_str());
+     
     lgmsg.addParameter(xmlTagReturnCode, 0);
     lgmsg.addParameter(xmlTagReturnInfo, "Login success.");
     msg.appendmsg(lgmsg);
     msg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2);
-    msg.send(_sk->fd);
+    
+    msg.block_send(_sk->fd);
 
     CClient * cli = new CClient(_sk->fd, udp, hd.secret1, hd.secret2, udpaddr, rec);
     CEngine::instance().dataMgr().addClient(cli);

@@ -31,10 +31,9 @@ CClient::hndtable_t CClient::msghnds[] =
         {xmlTagLogout,  &CClient::doLogout},
         {NULL,          &CClient::doUnknow}
 };
-void CClient::procMsgs(CCNIMsgParser & pmsg)
+void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
 {
     
-    CCNIMsgPacker res, bd;
     int i;
     res.create();
     bd.create();
@@ -64,15 +63,7 @@ void CClient::procMsgs(CCNIMsgParser & pmsg)
         LOGE("pack error..\n");
     }
  
-   // res.send(_tcpfd);
- 
-    
-    res.free();
- 
-    bd.free();
-  
-    //tbd broad cast...
-}
+ }
 
 int CClient::doUnknow(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
 {

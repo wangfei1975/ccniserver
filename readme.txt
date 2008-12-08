@@ -23,6 +23,19 @@ ccniserver |-readme.txt
 
 
  
+2008-12-08 performance evaluate:
+
+1000 connected clients, 100 requests each clients:
+
+1228751963:517717    1000 clients 100,000 requests
+1228751974:354145
+
+about 11 seconds, on 
+  Intel(R) Core(TM)2 CPU          6600  @ 2.40GHz 
+  1 Gbytes memory
+  Ubuntu 804
+
+
 
 
 
