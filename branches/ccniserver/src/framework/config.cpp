@@ -89,7 +89,39 @@ bool CConfig::create(const char * cfgfname)
        dburl = get_executable_path() + dburl;
    }
    
-   root.findChild(xmlSecret).getContent(secret);
+   if (root.findChild(xmlSecret).getContent(secret).empty())
+   {
+       LOGW("no scret in config file, using default secret.\n")
+       secret = "hello";
+   }
+   
+   pool_threads = root.findChild(xmlPoolThreadCount).getIntContent();
+   if (pool_threads == 0)
+   {
+       LOGW("no valid pool threads count in conf file. using default value.\n");
+       pool_threads = 4;
+   }
+   
+   usr_listen_threads = root.findChild(xmlUserListenThreadCount).getIntContent();
+   if (usr_listen_threads == 0)
+   {
+       LOGW("no valid usr listen threads count in conf file. using default value.\n");
+       usr_listen_threads = 1;
+   }
+   
+   login_timeout =  root.findChild(xmlLoginTimeOut).getIntContent();
+   if (login_timeout == 0)
+   {
+       LOGW("no valid login timeout in conf file. using default value.\n");
+       login_timeout = 5;
+   }
+   
+   secret_timeout = root.findChild(xmlSecretKeyTimeOut).getIntContent(); 
+   if (secret_timeout == 0)
+   {
+       LOGW("no valid secret timeout in conf file. using default value.\n");
+       secret_timeout = 5;
+   }
    
    LOGD("create configuration success.\n");
    return true;

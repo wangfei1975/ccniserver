@@ -90,11 +90,11 @@ protected:
 
     CThreadsPool * _boss;
  
-    bool _exit;
+    bool volatile _exit;
     CEvent _event;
-    CJob * _job;
+    CJob * volatile  _job;
     void * _arg;
-    bool _startok;
+    bool volatile _startok;
 public:
     CWorkThread(CThreadsPool * bo) :
         _boss(bo),_exit(false), _job(NULL), _arg(NULL), _startok(false)

@@ -96,7 +96,7 @@ public:
             LOGE("create threads pool error.\n");
             return false;
         }
-
+        LOGD("create %d threads in threads pool\n", _cfg.pool_threads);
         if (!_dataMgr.create())
         {
             LOGE("create data manager error.\n");

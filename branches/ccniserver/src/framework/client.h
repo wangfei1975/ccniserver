@@ -61,7 +61,7 @@ public:
         st_sending,
     };
 private:
-   
+
     state_t _state;
     int _tcpfd;
     CUdpSockData * _udp;
@@ -73,16 +73,16 @@ private:
     proc_state_t _pstate;
     CCNIMsgParser _curmsg;
     CCNIMsgPacker _resmsg;
-    
+
 private:
     bool doread();
     bool dosend();
-    
+
 public:
     CClient(int tcpfd, CUdpSockData * udp, const secret_key_t & k1, const secret_key_t & k2,
             const struct sockaddr_in & udpaddr, const CDataBase::CRecord & usr) :
-         _state(Online), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr),
-                _usrinfo(usr),_pstate(st_reading)
+        _state(Online), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr), _usrinfo(usr),
+                _pstate(st_reading)
     {
 
     }
@@ -95,6 +95,33 @@ public:
     int tcpfd()
     {
         return _tcpfd;
+    }
+
+    const char * strstate()
+    {
+        static const struct
+        {
+            state_t msk;
+            const char * name;
+        } tab[]=
+        {
+            { Offline, "Offline" },
+            { Online, "Online" },
+            { Idle, "Idle" },
+            { Sessional, "Sessional" },
+            { Ready, "Ready" },
+            { Watching, "Watching" },
+            { Moving, "Moving" },
+            { Pondering, "Pondering" },
+            { Offline, "Unknow state" } 
+        };
+        int i;
+        for (i = 0; i < (int)(sizeof(tab)/sizeof(tab[0]))-1; i++)
+        {
+            if (_state == tab[i].msk)
+                break;
+        }
+        return tab[i].name;
     }
 
 public:

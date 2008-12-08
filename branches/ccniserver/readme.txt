@@ -36,6 +36,8 @@ about 11 seconds, on
   Ubuntu 804
 
 
+Note: modify max file fd number and max size of msgqueue for better performance.
+
 
 
 

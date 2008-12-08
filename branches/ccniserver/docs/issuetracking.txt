@@ -1,0 +1,6 @@
+2008-12-08:
+  1. main framework is complete. 
+     in E6600 CPU 1G memory, 1000 connections, 100 requests each client, take about 11 seconds.
+     some time system blocking at msgqueue full.
+     
+  2. TODO: write a new msgqueue to replace system V msg queue.    

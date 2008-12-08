@@ -26,14 +26,15 @@
 
 CClient::hndtable_t CClient::msghnds[] =
 {
-        {xmlTagCCNI,    &CClient::doCCNI},
-        {xmlTagMyState, &CClient::doMyState},
-        {xmlTagLogout,  &CClient::doLogout},
-        {NULL,          &CClient::doUnknow}
+{ xmlTagCCNI, &CClient::doCCNI },
+{ xmlTagMyState, &CClient::doMyState },
+{ xmlTagLogout, &CClient::doLogout },
+{ NULL, &CClient::doUnknow } 
 };
+
 void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
 {
-    
+
     int i;
     res.create();
     bd.create();
@@ -55,15 +56,15 @@ void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CCNIMsgPacker 
             break;
         }
     }
- 
+
     const CCNI_HEADER & hd(pmsg.header());
-  
+
     if (!res.pack(hd.seq, hd.udata, hd.secret1, hd.secret2))
     {
         LOGE("pack error..\n");
     }
- 
- }
+
+}
 
 int CClient::doUnknow(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
 {
@@ -74,23 +75,27 @@ int CClient::doUnknow(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
 }
 int CClient::doCCNI(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
 {
-   // LOGV("enter\n");
-    
+    // LOGV("enter\n");
+
     CXmlMsg lgmsg, svrinfo;
     lgmsg.create(xmlTagCCNIRes);
     svrinfo.create(xmlTagSeriverInformation);
-    
+
     svrinfo.addParameter(xmlTagServerType, "CCNIServer");
     svrinfo.addParameter(xmlTagServerVersion, "1.0");
     svrinfo.addParameter(xmlTagCCNIVersion, "1.0");
     svrinfo.addParameter(xmlTagDescription, "CCNI Chinese Chess Netword server 1.0 for Linux");
     lgmsg.addChild(svrinfo);
     res.appendmsg(lgmsg);
-   // LOGV("out\n");
+    // LOGV("out\n");
     return 0;
 }
 int CClient::doMyState(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
 {
+    CXmlMsg lgmsg;
+    lgmsg.create(xmlTagMyStateRes);
+    lgmsg.addParameter(xmlTagState, strstate());
+    res.appendmsg(lgmsg);
     return 0;
 }
 int CClient::doLogout(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
