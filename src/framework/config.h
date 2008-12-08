@@ -98,4 +98,8 @@ private:
 #define xmlLogLogout                "LogLogout"
 #define xmlDBPathName               "DBPathName"
 #define xmlSecret                   "Secret"
+#define xmlPoolThreadCount          "PoolThreadCount"
+#define xmlUserListenThreadCount    "UserListenThreadCount"
+#define xmlLoginTimeOut             "LoginTimeOut"
+#define xmlSecretKeyTimeOut         "SecretKeyTimeOut"
 #endif /*CONFIG_H_*/

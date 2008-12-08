@@ -173,6 +173,7 @@ public:
             }
             _ths.push_back(th);
         }
+        LOGD("create %d user listen threads success.\n", cfg.usr_listen_threads);
         return true;
     }
 

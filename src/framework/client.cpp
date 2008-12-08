@@ -26,8 +26,8 @@
 
 bool CClient::doread()
 {
-    static int disccnt = 0, errcnt = 0;
-    static int msgcnt = 0;
+    static volatile int disccnt = 0, errcnt = 0;
+    static volatile int msgcnt = 0;
     CCNIMsgParser::state_t st = _curmsg.read(_tcpfd);
     LOGV("read state: %d\n", st);
     if (st == CCNIMsgParser::st_rderror)
@@ -92,7 +92,7 @@ bool CClient::dosend()
 }
 bool CClient::run()
 {
-    static int cnt = 0;
+    static volatile int cnt = 0;
     if (++cnt == 1)
     {
         LOGW("user job run %d times.\n", cnt);
