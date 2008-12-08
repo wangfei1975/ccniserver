@@ -56,11 +56,11 @@ void CUserListener::CListenThread::doWork()
             {
                
                 CClient * cli;
-                int isnew;
+                int isread;
                 read(_pipfd[0], &cli, sizeof(cli));
-                read(_pipfd[0], &isnew, sizeof(isnew));
+                read(_pipfd[0], &isread, sizeof(isread));
               //  LOGI("addr user %d\n", isnew);
-                _epollAdd(cli, isnew);
+                _epollAdd(cli, isread);
             }
             else
             {

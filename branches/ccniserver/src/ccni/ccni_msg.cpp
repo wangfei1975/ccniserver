@@ -22,26 +22,76 @@
 /***************************************************************************************/
 #include "ccni_msg.h"
 #include "utils.h"
- bool CCNIMsgPacker::send(int sock)
- {
+int CCNIMsgPacker::block_send(int sock)
+{
     uint8_t * buf = (uint8_t *)&_hd;
-    
-    if (tcp_write(sock, buf , sizeof(_hd)) < 0)
+
+    int slen = tcp_write(sock, buf, sizeof(_hd));
+    if (slen < 0)
     {
-        LOGW("write error.%s\n", strerror(errno));
-        return false;
+        return slen;
     }
-   // LOGV("_data: %s len:%d\n", _data, _hd.datalen);
-    if (tcp_write(sock, _data, _hd.datalen) < 0)
+    return tcp_write(sock, _data, _hd.datalen);
+}
+
+CCNIMsgPacker::state_t CCNIMsgPacker::send(int sock)
+{
+    if (_state == st_sdhd)
     {
-        LOGW("write error.%s\n", strerror(errno));
-        return false;
+        return _sendsdhd(sock);
     }
-   
-    return true;
-    
- }
-CCNIMsgParser::parse_state_t CCNIMsgParser::read(int sock)
+    if (_state == st_sdbd)
+    {
+        return _sendsdbd(sock);
+    }
+    return _state;
+
+}
+CCNIMsgPacker::state_t CCNIMsgPacker::_sendsdhd(int sock)
+{
+    uint8_t * buf = (uint8_t *)&_hd;
+
+    int slen =:: send(sock, buf+_pos, sizeof(_hd)-_pos, MSG_NOSIGNAL|MSG_DONTWAIT);
+    if (slen <= 0)
+    {
+        if (errno == EAGAIN)
+        {
+            LOGV("send EAGAIN\n");
+            return _state;
+        }
+        return (_state = st_sderror);
+    }
+    if (slen < (int)(sizeof(_hd)-_pos))
+    {
+        _pos += slen;
+        return (_state = st_sdhd);
+    }
+    _pos = 0;
+    _state = st_sdbd;
+    return _sendsdbd(sock);
+}
+CCNIMsgPacker::state_t CCNIMsgPacker::_sendsdbd(int sock)
+{
+    int slen =:: send(sock, _data+_pos, _hd.datalen-_pos, MSG_NOSIGNAL|MSG_DONTWAIT);
+    if (slen <= 0)
+    {
+        if (errno == EAGAIN)
+        {
+            LOGV("send EAGAIN\n");
+            return _state;
+        }
+        return (_state = st_sderror);
+    }
+    if (slen < _hd.datalen-_pos)
+    {
+        _pos += slen;
+        LOGV("send body..\n");
+        return (_state = st_sdbd);
+    }
+    return (_state = st_sdok);
+}
+
+CCNIMsgParser::state_t CCNIMsgParser::read(int sock)
 {
     if (_state == st_rdhd)
     {
@@ -54,7 +104,7 @@ CCNIMsgParser::parse_state_t CCNIMsgParser::read(int sock)
     return _state;
 }
 
-CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdhd(int sock)
+CCNIMsgParser::state_t CCNIMsgParser::_readRdhd(int sock)
 {
     uint8_t * buf = (uint8_t *)&_hd;
 
@@ -88,13 +138,13 @@ CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdhd(int sock)
     }
 
     //header ok, then read body.
-    _data = new  char[_hd.datalen+1];
+    _data = new char[_hd.datalen+1];
     _pos = 0;
-    _state = st_rdbd; 
+    _state = st_rdbd;
     return _readRdbd(sock);
 }
 
-CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdbd(int sock)
+CCNIMsgParser::state_t CCNIMsgParser::_readRdbd(int sock)
 {
     int rlen =:: read(sock, _data+_pos, _hd.datalen-_pos);
     if (rlen < 0)
@@ -119,7 +169,7 @@ CCNIMsgParser::parse_state_t CCNIMsgParser::_readRdbd(int sock)
         return (_state = st_rdbd);
     }
     _data[_hd.datalen] = 0;
-    return (_state = st_bdok);
+    return (_state = st_rdok);
 
 }
 

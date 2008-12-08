@@ -205,6 +205,7 @@ int tcp_write(int fd, void * buf, int len)
         if (errno == EAGAIN)
         {
             //LOGV("write EAGAIN\n");
+            usleep(1);
         }
         if (ret > 0)
         {

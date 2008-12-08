@@ -31,7 +31,7 @@ struct hndtable_t
 };
 static hndtable_t msghnds[];
 
-void procMsgs(CCNIMsgParser & msg);
+void procMsgs(CCNIMsgParser & msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
 int doCCNI(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
 int doMyState(CXmlNode  msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
 int doLogout(CXmlNode  msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);

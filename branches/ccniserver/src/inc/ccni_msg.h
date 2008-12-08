@@ -61,17 +61,27 @@ public:
 //create ccni msg and write to net.
 class CCNIMsgPacker
 {
+public:
+    enum state_t
+    {
+        st_sdhd, //sending msg header. 
+        st_sdbd, //reading msg body.
+        st_sdok,
+        st_sderror, //send socket error, socket closed or send error.
+    };
 private:
     CCNI_HEADER _hd;
     char * _data;
     CXmlDoc _doc;
+    int _pos;
+    state_t _state;
 public:
     const char * data()
     {
         return _data;
     }
     CCNIMsgPacker() :
-        _data(NULL)
+        _data(NULL), _pos(0), _state(st_sdhd)
     {
     }
     ~CCNIMsgPacker()
@@ -86,6 +96,8 @@ public:
             xmlFree(_data);
             _data = NULL;
         }
+        _pos = 0;
+        _state = st_sdhd;
     }
     bool create()
     {
@@ -116,28 +128,36 @@ public:
         _hd.secret2 = k2;
         _doc.dump(_data, len);
         _hd.datalen = (uint16_t)len;
+        _pos = 0;
+        _state = st_sdhd;
         return (_data != NULL);
     }
 
-    bool send(int sock);
+    state_t send(int sock);
+
+    int block_send(int sock);
+
+private:
+    state_t _sendsdhd(int sock);
+    state_t _sendsdbd(int sock);
 };
 
 //read msg from net & parse.
 class CCNIMsgParser
 {
 public:
-    enum parse_state_t
+    enum state_t
     {
         st_rdhd, //reading msg header, header is not ready. 
         st_rdbd, //reading msg body.
-        st_bdok, //msg ok.
+        st_rdok, //msg ok.
         st_rderror, //read socket error, socket closed or read error.
         st_hderror, //read a illegal header.
     };
 private:
     CCNI_HEADER _hd;
     char * _data;
-    parse_state_t _state;
+    state_t _state;
     int _pos;
 
     CXmlDoc _doc;
@@ -170,7 +190,7 @@ public:
      * */
     bool parse()
     {
-        if (_state != st_bdok)
+        if (_state != st_rdok)
         {
             return false;
         }
@@ -197,24 +217,24 @@ public:
     {
         return _doc.getRoot().child();
     }
- 
+
     const char * data()
     {
         return _data;
     }
-    parse_state_t state()
+    state_t state()
     {
         return _state;
     }
-    parse_state_t read(int sock);
+    state_t read(int sock);
     const CCNI_HEADER & header()
     {
         return _hd;
     }
 private:
 
-    parse_state_t _readRdhd(int sock);
-    parse_state_t _readRdbd(int sock);
+    state_t _readRdhd(int sock);
+    state_t _readRdbd(int sock);
 
 };
 #endif /*CCNI_MSG_H_*/

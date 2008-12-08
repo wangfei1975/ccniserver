@@ -99,14 +99,14 @@ int main(int argc, char * argv[])
     msg.send(tcpfd);
 
     CCNIMsgParser rmsg;
-    CCNIMsgParser::parse_state_t st = rmsg.read(tcpfd);
-    while (st != CCNIMsgParser::st_bdok)
+    CCNIMsgParser::state_t st = rmsg.read(tcpfd);
+    while (st != CCNIMsgParser::st_rdok)
     {
         //usleep(10);
         st = rmsg.read(tcpfd);
     }
     rmsg.parse();
-    printf("return msg is\n %s\n", rmsg.data());
+    //printf("return msg is\n %s\n", rmsg.data());
 
     msg.free();
     msg.create();
@@ -116,17 +116,21 @@ int main(int argc, char * argv[])
     msg.pack(1, 2, rhd.secret1, rhd.secret2);
     for (int i = 0; i < 100; i++)
     {
-        msg.send(tcpfd);
-
-       // rmsg.free();
-       // st = rmsg.read(tcpfd);
-      //  while (st != CCNIMsgParser::st_bdok)
+        msg.block_send(tcpfd);
+        rmsg.free();
+       // printf("%d time send ok reading....\n", i);
+        //usleep(10000000);
+        st = rmsg.read(tcpfd);
+        while (st != CCNIMsgParser::st_rdok)
         {
-            //  usleep(1);
-       //     st = rmsg.read(tcpfd);
+            usleep(1);
+            st = rmsg.read(tcpfd);
+            if (st == CCNIMsgParser::st_rderror)
+                break;
         }
-       //rmsg.parse();
-      //  printf("return msg is\n %s\n", rmsg.data());
+        rmsg.parse();
+        printf("return msg %d times ok.\n", i);
+        //printf("r msg is\n %s\n", rmsg.data());
     }
     msg.free();
     close(tcpfd);
