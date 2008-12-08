@@ -29,7 +29,7 @@ int CLog::_instance = 0;
 
 pthread_t CLog::_pth = 0;
 
-CMsgQueue * CLog::_queue= NULL;
+CCMsgQueue * CLog::_queue= NULL;
 
 CLog::CLog(const char * fname, LOGTYPE type, LOGFILE_CFG policy, int fsize) :
     _fname(fname), _fnumber(0), _lpolicy(policy), _fsize(fsize), _logfp(0), _type(type)
@@ -42,7 +42,7 @@ CLog::CLog(const char * fname, LOGTYPE type, LOGFILE_CFG policy, int fsize) :
 #endif
     if (_queue == NULL)
     {
-        _queue = new CMsgQueue();
+        _queue = new CCMsgQueue();
         _queue->create();
     }
     if (_pth == 0)
@@ -71,7 +71,7 @@ CLog::~CLog()
         pthread_cancel(_pth);
         _pth = 0;
 
-        int cnt = _queue->getQueueMsgCnt();
+        int cnt = _queue->getMsgCnt();
         LOGITEM * item= NULL;
         while (cnt > 0)
         {
@@ -80,7 +80,7 @@ CLog::~CLog()
                 break;
             }
             item->logger->update(item);
-            cnt = _queue->getQueueMsgCnt();
+            cnt = _queue->getMsgCnt();
         }
 
         _queue->destroy();

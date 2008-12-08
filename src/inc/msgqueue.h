@@ -69,7 +69,7 @@ public:
     {
         return _queueid;
     }
-    int getQueueMsgCnt()
+    int getMsgCnt()
     {
         struct msqid_ds ds;
         int ret;
