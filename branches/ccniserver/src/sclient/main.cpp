@@ -70,8 +70,8 @@ int main(int argc, char * argv[])
         printf("send error. %s\n", strerror(errno));
     }
 
-    printf("send header(%d):\n", sizeof(hd));
-    dumpbin(&hd, sizeof(hd));
+   // printf("send header(%d):\n", sizeof(hd));
+   // dumpbin(&hd, sizeof(hd));
     recvfrom(sock, &rhd, sizeof(rhd), 0, (struct sockaddr *)&raddr, &rlen);
     printf("received header(%d):\n", sizeof(hd));
     dumpbin(&rhd, sizeof(rhd));
@@ -83,7 +83,11 @@ int main(int argc, char * argv[])
     tcpraddr.sin_addr.s_addr = inet_addr(ipbuf);
     tcpraddr.sin_port = htons(port-1);
 
-    connect(tcpfd, (struct sockaddr *)&tcpraddr, sizeof(tcpraddr));
+    if (connect(tcpfd, (struct sockaddr *)&tcpraddr, sizeof(tcpraddr)) < 0)
+    {
+        printf("connect error. %s\n", strerror(errno));
+        return 0;
+    }
 
     CCNIMsgPacker msg;
     msg.create();
@@ -96,14 +100,16 @@ int main(int argc, char * argv[])
     msg.appendmsg(lgmsg);
     msg.pack(0, 0, rhd.secret1, rhd.secret2);
 
-    msg.send(tcpfd);
+    msg.block_send(tcpfd);
 
     CCNIMsgParser rmsg;
     CCNIMsgParser::state_t st = rmsg.read(tcpfd);
     while (st != CCNIMsgParser::st_rdok)
     {
-        //usleep(10);
+        usleep(1);
         st = rmsg.read(tcpfd);
+        if (st == CCNIMsgParser::st_rderror)
+            break;
     }
     rmsg.parse();
     //printf("return msg is\n %s\n", rmsg.data());

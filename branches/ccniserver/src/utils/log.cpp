@@ -45,6 +45,7 @@ CLog::CLog(const char * fname, LOGTYPE type, LOGFILE_CFG policy, int fsize) :
         _queue = new CCMsgQueue();
         _queue->create();
     }
+ 
     if (_pth == 0)
     {
         if (pthread_create(&_pth, NULL, (void *(*)(void *))thread_func, NULL) != 0)

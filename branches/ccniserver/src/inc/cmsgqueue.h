@@ -31,6 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <deque>
+#include <list>
 #include "mutex.h"
 #include "event.h"
 
@@ -43,7 +44,7 @@ class CCMsgQueue
 private:
     CMutex _lk;
     CEvent _evt;
-    deque <void *> _data;
+    list <void *> _data;
 
 public:
 
@@ -76,8 +77,8 @@ public:
     {
         _lk.lock();
         _data.push_back(buf);
+        _evt.signal(_lk._mutex);
         _lk.unlock();
-        _evt.signal();
         return true;
     }
 
@@ -87,12 +88,11 @@ public:
         _lk.lock();
         while (_data.empty())
         {
-            _lk.unlock();
-            _evt.wait();
-            _lk.lock();
+            _evt.wait(_lk._mutex);
         }
         p = (*_data.begin());
-        _data.pop_front();
+        _data.erase(_data.begin());
+        //_data.pop_front();
         _lk.unlock();
         return p;
     }

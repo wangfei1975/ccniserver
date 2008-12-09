@@ -25,16 +25,17 @@ static void process_cmdline(int argc, char * argv[])
 
 int main(int argc, char * argv[])
 {
+  
     run_as_daemon(sig_handler);
  
     LOGI(copyright);
     
     process_cmdline(argc, argv);
-    
+ 
    // check_unique_instance(pidfname);
     
     string cfgpname(string(get_executable_path())+ CFGFNAME);
-    
+ 
     if (!CEngine::instance().create(cfgpname.c_str()))
     {
         CEngine::instance().destroy();

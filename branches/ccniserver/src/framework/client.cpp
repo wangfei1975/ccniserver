@@ -61,7 +61,11 @@ bool CClient::doread()
         LOGW("read a invalid ccni msg from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
         return false;
     }
-    CEngine::instance().counter().incMsgCnt();
+    uint32_t c = CEngine::instance().counter().incMsgCnt();
+    if ((c %100) == 0)
+    {
+        LOGW("total message count:%d\n", c);
+    }
     _pstate = st_sending;
     LOGV("got a ccni msg:\n%s\n", _curmsg.data());
     CCNIMsgPacker bd;
@@ -73,6 +77,12 @@ bool CClient::doread()
 
 bool CClient::dosend()
 {
+    _resmsg.block_send(_tcpfd);
+    _resmsg.free();
+    _curmsg.free();
+    _pstate = st_reading;
+    return true;
+    
     CCNIMsgPacker::state_t st = _resmsg.send(_tcpfd);
     if (st == CCNIMsgPacker::st_sderror)
     {
@@ -92,11 +102,11 @@ bool CClient::dosend()
 }
 bool CClient::run()
 {
-    static volatile int cnt = 0;
-   
-    if (++cnt == 1)
+     static volatile int cnt = 0;
+  
+    //if (++cnt == 1)
     {
-        LOGW("user job run %d times.\n", cnt);
+        LOGV("user job run %d times.\n", ++cnt);
     }
     bool ret;
     if (_pstate == st_reading)
@@ -111,6 +121,7 @@ bool CClient::run()
     {
         LOGV("_psate = %s\n", _pstate == st_reading ? "reading":"sending");
         CEngine::instance().usrListener().assign(this, (_pstate == st_reading) ? 1 : 0);
+        LOGV("re assign ok.\n");
     }
     else
     {

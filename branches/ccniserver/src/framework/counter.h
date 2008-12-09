@@ -26,15 +26,15 @@ public:
         CAutoMutex du(_loglk);
         return _logincnt;
     }
-    void incMsgCnt()
+    uint32_t incMsgCnt()
     {
         CAutoMutex du(_msglk);
-        ++_msgcnt;
+        return ++_msgcnt;
     }
-    void incLoginCnt()
+    uint32_t incLoginCnt()
     {
         CAutoMutex du(_loglk);
-        ++_logincnt;
+        return ++_logincnt;
     }
 };
 #endif /*COUNTER_H_*/

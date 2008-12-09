@@ -93,6 +93,7 @@ protected:
  
     bool volatile _exit;
     CEvent _event;
+    CCMsgQueue _queue;
     CJob * volatile  _job;
     void * _arg;
     bool volatile _startok;

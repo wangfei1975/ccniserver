@@ -28,12 +28,14 @@ FRAMEWORK_DIR   = ./framework
 UTILS_DIR       = ./utils
 DBI_DIR         = ./dbi
 SCLIENT_DIR     = ./sclient
+TOOL_DIR        = ./tool
 
 export CCNI_LIB      = libccni
 export UTILS_LIB     = libutils
 export DBI_LIB       = libdbi
 export CCNI_SERVER   = $(PRGNAME)
 export CCNI_SCLIENT  = ccni
+export CCNI_TOOL     = ccnitool
 
 CURDIR := $(shell pwd)
 
@@ -73,7 +75,7 @@ export DEBUG
 .PHONY : all
 all : DISPTITLE $(CCNI_SERVER) mkccni
 
-$(CCNI_SERVER):mklibutils mklibccni mkdbi mkccniserver
+$(CCNI_SERVER):mklibutils mklibccni mkdbi mkccniserver mkccnitool
 mkccniserver:
 	@echo start "make" $(CCNI_SERVER) ...
 	$(MAKE) -C $(FRAMEWORK_DIR)
@@ -101,6 +103,11 @@ mkccni:
 	$(MAKE) -C $(SCLIENT_DIR)
 	@echo "make" $(CCNI_SCLIENT) complete
 	@echo
+mkccnitool:
+	@echo start "make" $(CCNI_TOOL)...
+	$(MAKE) -C $(TOOL_DIR)
+	@echo "make" $(CCNI_TOOL) complete
+	@echo
 
 DISPTITLE:
 	@echo "***********************************************"
@@ -118,6 +125,7 @@ clean:
 	- $(MAKE) -C $(DBI_DIR)         clean
 	- $(MAKE) -C $(FRAMEWORK_DIR)   clean
 	- $(MAKE) -C $(SCLIENT_DIR)   clean
+	- $(MAKE) -C $(TOOL_DIR)   clean
 
 
 

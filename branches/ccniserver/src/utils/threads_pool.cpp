@@ -28,31 +28,47 @@ void CWorkThread::doWork()
     while (!_exit)
     {
         _startok = true;
-        if (_job)
+        /*
+        CJob * j = (CJob *)_queue.receive();
+        if (j != NULL)
         {
-            _job->run();
-            _job = NULL;
+            j->run();
             _boss->moveToIdleList(this);
-            _lk.unlock();
         }
-        else
+        */
+    
+        
+        _lk.lock();
+        if (_job == NULL)
         {
-            _event.wait();
+            _event.wait(_lk._mutex);
         }
+        _job->run();
+        _job = NULL;
+        _lk.unlock();
+        _boss->moveToIdleList(this);
+        
+   
         pthread_testcancel();
     }
 }
 
 void CWorkThread::run(CJob * job)
 {
+   // _queue.send(job);
+   
     _lk.lock();
     _job = job;
-    _event.signal(); //SetEvent(_event);
+    _event.signal(_lk._mutex); //SetEvent(_event);
+     _lk.unlock();
+  
 }
 void CThreadsPool::moveToIdleList(CWorkThread * w)
 {
     list<CWorkThread *>::iterator it;
+   // LOGV("1\n")
     _lk.lock();
+   // LOGV("2\n")
     for (it = _busyList.begin(); it != _busyList.end(); ++it)
     {
         if (*it == w)
@@ -60,40 +76,41 @@ void CThreadsPool::moveToIdleList(CWorkThread * w)
     }
     if (it == _busyList.end())
     {
+        LOGE("error.\n\n")
         _lk.unlock();
         return;
     }
     _busyList.erase(it);
     _idleList.push_back(w);
-    bool sig = (_idleList.size() == 1);
-    _lk.unlock();
-
-    if (sig)
-    {
-        _event.signal();
-    }
+    
+        _event.signal(_lk._mutex);
+        _lk.unlock();
+      //  LOGV("3\n")
+     
 }
 void   CThreadsPool::doWork()
 {
     CWorkThread * w;
     while (1)
     {
+       
         CJob * job = (CJob *)_queue.receive();
+       // LOGV("2\n")
         if (job)
         {
             //find a idle thread from idle list and move to busy list.
             _lk.lock();
-            while (_idleList.empty())
+            if(_idleList.empty())
             {
-                _lk.unlock();
-                _event.wait();
-                _lk.lock();
+               _event.wait(_lk._mutex);
             }
+           // LOGV("3\n")
             w = *(_idleList.begin());
             _idleList.erase(_idleList.begin());
             _busyList.push_front(w);
             _lk.unlock();
             w->run(job);
+    
         }
         pthread_testcancel();
     }
