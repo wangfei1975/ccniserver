@@ -77,12 +77,13 @@ bool CClient::doread()
 
 bool CClient::dosend()
 {
+    /*
     _resmsg.block_send(_tcpfd);
     _resmsg.free();
     _curmsg.free();
     _pstate = st_reading;
     return true;
-    
+    */
     CCNIMsgPacker::state_t st = _resmsg.send(_tcpfd);
     if (st == CCNIMsgPacker::st_sderror)
     {
