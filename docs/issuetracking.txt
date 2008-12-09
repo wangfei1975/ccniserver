@@ -4,3 +4,10 @@
      some time system blocking at msgqueue full.
      
   2. TODO: write a new msgqueue to replace system V msg queue.    
+
+2008-12-09:
+    1. fix race condition problem...
+    2. write a new queue instead of system V queue.
+    
+    TODO: rewrite threads_pool, busylist & idle list.    
+    

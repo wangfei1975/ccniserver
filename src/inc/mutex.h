@@ -28,10 +28,16 @@
 
 class CMutex
 {
-private:
-    pthread_mutex_t _mutex;
-
 public:
+    pthread_mutex_t  _mutex;
+ 
+public:
+    /*
+    operator pthread_mutex_t & ()
+    {
+        return _mutex;
+    }
+    */
     CMutex()
     {
         pthread_mutex_init(&_mutex, NULL);

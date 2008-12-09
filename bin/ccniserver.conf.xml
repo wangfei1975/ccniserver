@@ -37,8 +37,8 @@
    <!--
       becareful of msg queue size. (1000)    
    -->
-   <PoolThreadCount>12</PoolThreadCount>
-   <UserListenThreadCount>2</UserListenThreadCount>
+   <PoolThreadCount>4</PoolThreadCount>
+   <UserListenThreadCount>1</UserListenThreadCount>
    
    <DBPathName>db/ccni.db</DBPathName>
    

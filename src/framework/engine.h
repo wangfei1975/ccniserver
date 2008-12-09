@@ -33,6 +33,7 @@
 #include "data_mgr.h"
 #include "dbi.h"
 #include "counter.h"
+#include "cmder.h"
 class CEngine
 {
 private:
@@ -44,6 +45,7 @@ private:
     CDataMgr _dataMgr;
     CDataBase _dbi;
     CCounter  _counter;
+    CCmder    _cmder;
     CEngine() :
         _conLiser(_cfg, _pool), _lg(_cfg.logcfg)
     {
@@ -87,7 +89,8 @@ public:
 
     void loop()
     {
-        _pool.join();
+       _cmder.dowork();
+        
     }
     bool create(const char * cfgfname)
     {
@@ -96,7 +99,7 @@ public:
             LOGE("create server configuration error!\n");
             return false;
         }
-
+ 
         if (!_pool.create(_cfg.pool_threads))
         {
             LOGE("create threads pool error.\n");
@@ -126,12 +129,17 @@ public:
             LOGE("create user listener error.\n");
             return false;
         }
+        if (!_cmder.create())
+        {
+            LOGE("create command listener error.\n")
+            return false;
+        }
         LOGI("CCNI engine create success.\n");
         return true;
     }
     void destroy()
     {
-       
+        _cmder.destroy();
         _usrLiser.destroy();
         _conLiser.destroy();
         _pool.destroy();
