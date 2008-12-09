@@ -26,15 +26,15 @@
 
 bool CClient::doread()
 {
-    static volatile int disccnt = 0, errcnt = 0;
-    static volatile int msgcnt = 0;
+    
+ 
     CCNIMsgParser::state_t st = _curmsg.read(_tcpfd);
     LOGV("read state: %d\n", st);
     if (st == CCNIMsgParser::st_rderror)
     {
 
-        LOGW("remote disconnected. %s %d\n", inet_ntoa(_udpaddr.sin_addr), ++disccnt);
-        LOGW("msg count %d times.\n", msgcnt);
+       // LOGW("remote disconnected. %s %d\n", inet_ntoa(_udpaddr.sin_addr), ++disccnt);
+        LOGW("msg count %d times.\n", CEngine::instance().counter().msgCount());
 
         //tbd: broad cast user NotifyUserLogoff...
 
@@ -45,7 +45,7 @@ bool CClient::doread()
     {
         LOGW("read a invalid ccni header from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
 
-        LOGW("read error cnt:%d\n", ++errcnt);
+      //  LOGW("read error cnt:%d\n", ++errcnt);
 
         return false;
     }
@@ -61,7 +61,7 @@ bool CClient::doread()
         LOGW("read a invalid ccni msg from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
         return false;
     }
-    ++msgcnt;
+    CEngine::instance().counter().incMsgCnt();
     _pstate = st_sending;
     LOGV("got a ccni msg:\n%s\n", _curmsg.data());
     CCNIMsgPacker bd;
@@ -93,6 +93,7 @@ bool CClient::dosend()
 bool CClient::run()
 {
     static volatile int cnt = 0;
+   
     if (++cnt == 1)
     {
         LOGW("user job run %d times.\n", cnt);
