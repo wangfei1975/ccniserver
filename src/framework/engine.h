@@ -32,6 +32,7 @@
 #include "ccni_log.h"
 #include "data_mgr.h"
 #include "dbi.h"
+#include "counter.h"
 class CEngine
 {
 private:
@@ -42,12 +43,17 @@ private:
     CThreadsPool _pool;
     CDataMgr _dataMgr;
     CDataBase _dbi;
+    CCounter  _counter;
     CEngine() :
         _conLiser(_cfg, _pool), _lg(_cfg.logcfg)
     {
 
     }
 public:
+    CCounter & counter()
+    {
+        return _counter;
+    }
     CThreadsPool & threadsPool()
     {
         return _pool;
