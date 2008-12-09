@@ -23,6 +23,7 @@
 #ifndef THREAD_POOL_H_
 #define THREAD_POOL_H_
 #include <list>
+#include <set>
 using namespace std;
 
 #include "event.h"
@@ -87,8 +88,7 @@ class CThreadsPool;
 class CWorkThread : public CThread
 {
 protected:
-    CMutex _lk;
-
+  
     CThreadsPool * _boss;
  
     bool volatile _exit;
@@ -134,8 +134,6 @@ protected:
     CEvent _event;
     int _threadCount;
     CCMsgQueue _queue;
-    CMutex _lk;
-
     list<CWorkThread *> _idleList;
     list<CWorkThread *> _busyList;
 
@@ -166,11 +164,8 @@ public:
     }
     int getBusyCount()
     {
-        int cnt;
-        _lk.lock();
-        cnt = (int)_busyList.size();
-        _lk.unlock();
-        return cnt;
+        CAutoMutex dumy(_event.mutex());
+        return (int)_busyList.size();
     }
  
    

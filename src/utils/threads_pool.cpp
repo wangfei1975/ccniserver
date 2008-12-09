@@ -25,50 +25,37 @@
 
 void CWorkThread::doWork()
 {
+    _startok = true;
+    CJob * j;
     while (!_exit)
     {
-        _startok = true;
-        /*
-        CJob * j = (CJob *)_queue.receive();
-        if (j != NULL)
-        {
-            j->run();
-            _boss->moveToIdleList(this);
-        }
-        */
-    
-        
-        _lk.lock();
+        _event.lock();
         if (_job == NULL)
         {
-            _event.wait(_lk._mutex);
+            _event.wait();
         }
-        _job->run();
+        j = _job;
         _job = NULL;
-        _lk.unlock();
+        _event.unlock();
+        j->run();
         _boss->moveToIdleList(this);
-        
-   
-        pthread_testcancel();
+
+       // pthread_testcancel();
     }
 }
 
 void CWorkThread::run(CJob * job)
 {
-   // _queue.send(job);
-   
-    _lk.lock();
+    CAutoMutex dumy(_event.mutex());
     _job = job;
-    _event.signal(_lk._mutex); //SetEvent(_event);
-     _lk.unlock();
-  
+    _event.signal();
 }
 void CThreadsPool::moveToIdleList(CWorkThread * w)
 {
     list<CWorkThread *>::iterator it;
-   // LOGV("1\n")
-    _lk.lock();
-   // LOGV("2\n")
+
+    CAutoMutex dumy(_event.mutex());
+    
     for (it = _busyList.begin(); it != _busyList.end(); ++it)
     {
         if (*it == w)
@@ -76,41 +63,39 @@ void CThreadsPool::moveToIdleList(CWorkThread * w)
     }
     if (it == _busyList.end())
     {
-        LOGE("error.\n\n")
-        _lk.unlock();
+        LOGE("error.\n")
+      
         return;
     }
     _busyList.erase(it);
     _idleList.push_back(w);
-    
-        _event.signal(_lk._mutex);
-        _lk.unlock();
-      //  LOGV("3\n")
      
+    //_busyList.erase(w);
+    //_idleList.insert(w);
+    _event.signal();
 }
-void   CThreadsPool::doWork()
+void CThreadsPool::doWork()
 {
     CWorkThread * w;
     while (1)
     {
-       
+
         CJob * job = (CJob *)_queue.receive();
-       // LOGV("2\n")
+
         if (job)
         {
             //find a idle thread from idle list and move to busy list.
-            _lk.lock();
-            if(_idleList.empty())
+            _event.lock();
+            if (_idleList.empty())
             {
-               _event.wait(_lk._mutex);
+                _event.wait();
             }
-           // LOGV("3\n")
+
             w = *(_idleList.begin());
             _idleList.erase(_idleList.begin());
-            _busyList.push_front(w);
-            _lk.unlock();
+            _busyList.push_back(w);
+            _event.unlock();
             w->run(job);
-    
         }
         pthread_testcancel();
     }
@@ -145,8 +130,8 @@ bool CThreadsPool::create(int cnt)
 void CThreadsPool::destroy()
 {
     CThread::destroy();
-    
-    _lk.lock();
+
+    _event.lock();
     for (list<CWorkThread *>::iterator it = _busyList.begin(); it != _busyList.end(); ++it)
     {
         (*it)->destroy();
@@ -159,7 +144,7 @@ void CThreadsPool::destroy()
         delete (*it);
     }
     _idleList.clear();
-    _lk.unlock();
+    _event.unlock();
 
     _queue.destroy();
 }

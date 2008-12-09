@@ -37,14 +37,12 @@
 
 using namespace std;
 
-
-
 class CCMsgQueue
 {
 private:
-    CMutex _lk;
+
     CEvent _evt;
-    list <void *> _data;
+    deque <void *> _data;
 
 public:
 
@@ -59,7 +57,7 @@ public:
 
     int getMsgCnt()
     {
-        CAutoMutex dumy(_lk);
+        CAutoMutex dumy(_evt.mutex());
         return _data.size();
     }
 
@@ -75,25 +73,22 @@ public:
 
     bool send(void * buf)
     {
-        _lk.lock();
+        CAutoMutex dumy(_evt.mutex());
         _data.push_back(buf);
-        _evt.signal(_lk._mutex);
-        _lk.unlock();
+        _evt.signal();
+    
         return true;
     }
 
     void * receive()
     {
-        void * p;
-        _lk.lock();
+        CAutoMutex dumy(_evt.mutex());
         while (_data.empty())
         {
-            _evt.wait(_lk._mutex);
+            _evt.wait();
         }
-        p = (*_data.begin());
-        _data.erase(_data.begin());
-        //_data.pop_front();
-        _lk.unlock();
+        void * p = (*_data.begin());
+        _data.pop_front();
         return p;
     }
 };
