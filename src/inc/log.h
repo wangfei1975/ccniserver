@@ -53,10 +53,11 @@
  *    . log thread receive LOGITEM from msg queue, and do real output.(see function update) 
  *    . each CLog instance has its own log type, log file serials, split strategy, log level, etc.
  * */
+
 class CLog
 {
 public:
-    const static int LOG_BUF_SIZE = 1024*2;
+    const static int LOG_BUF_SIZE = 1024;
     const static int DEFAULT_LOGFILE_SIZE = 1024*1024;
     enum LOGTYPE
     {
@@ -121,7 +122,67 @@ private:
 private:
 
     static void * thread_func(void *);
-
+    
+   
+private:
+    /*
+    class CAllocator
+    {
+    private:
+        CMutex _lk;    
+        list <LOGITEM *> _mempools;
+        static const unsigned SSIZE = 1024; 
+    public:
+        LOGITEM * alloc(CLog * l)
+        {
+//            _lk.lock();
+//            if (!_mempools.empty())
+//            {
+//                LOGITEM * p = *_mempools.begin();
+//                _mempools.erase(_mempools.begin());
+//                _lk.unlock();
+//                p->logger = l;
+//                return p;
+//            }
+//            _lk.unlock();
+            return new LOGITEM(l);
+        }
+        void free(LOGITEM * p)
+        {
+//            _lk.lock();
+//            if (_mempools.size() < SSIZE)
+//            {
+//               _mempools.push_back(p);
+//               _lk.unlock();
+//            }
+//            else
+//            {
+//                _lk.unlock();
+//                delete p;
+//            }
+            delete p;
+        }
+        CAllocator()
+        {
+            for (unsigned int i = 0; i < SSIZE; i++)
+            {
+                _mempools.push_back(new LOGITEM(NULL));
+            }
+        }
+        ~CAllocator()
+        {
+            list <LOGITEM *>::iterator it;
+            _lk.lock();
+            for (it = _mempools.begin(); it != _mempools.end(); ++it)
+            {
+                delete (*it);
+            }
+            _lk.unlock();
+        }
+    };
+    static CAllocator _alloc;
+     
+    */
 };
 
 /*  

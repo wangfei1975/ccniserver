@@ -94,12 +94,12 @@ void CTcpListener::destroy()
 
 void CTcpListener::doWork()
 {
-    struct epoll_event events[10];
+    struct epoll_event events[20];
     int nfds;
     CTcpSockData * sk;
     while (1)
     {
-        if ((nfds = epoll_wait(_epfd, events, 10, _cfg.login_timeout*1000)) < 0)
+        if ((nfds = epoll_wait(_epfd, events, 20, _cfg.login_timeout*1000)) < 0)
         {
             LOGW("epoll wait error: %s\n", strerror(errno));
             pthread_testcancel();
@@ -142,7 +142,7 @@ void CTcpListener::_doaccept(CTcpSockData * sk)
         LOGE("accept error: %s\n", strerror(errno));
         return;
     }
-    LOGW("account cnt = %d\n", ++acccnt);
+    LOGW("accept cnt = %d\n", ++acccnt);
     LOGD("got connection from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
     if (set_nonblock(client) < 0)
     {

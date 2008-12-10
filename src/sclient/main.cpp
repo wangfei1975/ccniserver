@@ -74,8 +74,8 @@ int main(int argc, char * argv[])
    // dumpbin(&hd, sizeof(hd));
     recvfrom(sock, &rhd, sizeof(rhd), 0, (struct sockaddr *)&raddr, &rlen);
     printf("received header(%d):\n", sizeof(hd));
-    dumpbin(&rhd, sizeof(rhd));
-
+   // dumpbin(&rhd, sizeof(rhd));
+    close(sock);
     int tcpfd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in tcpraddr;
     memset(&tcpraddr, 0, sizeof(tcpraddr));
@@ -129,13 +129,13 @@ int main(int argc, char * argv[])
         st = rmsg.read(tcpfd);
         while (st != CCNIMsgParser::st_rdok)
         {
-            usleep(1);
+           // usleep(1);
             st = rmsg.read(tcpfd);
             if (st == CCNIMsgParser::st_rderror)
                 break;
         }
         rmsg.parse();
-        printf("return msg %d times ok.\n", i);
+        printf("return msg %d ok.\n", i);
         //printf("r msg is\n %s\n", rmsg.data());
     }
     msg.free();

@@ -28,7 +28,7 @@ bool CUdpListener::create()
 
     CUdpSockData fd;
     _fds.clear();
-     
+
     CConfig::addrlist_t::const_iterator it;
     for (it = _cfg.udplst.begin(); it != _cfg.udplst.end(); ++it)
     {
@@ -45,8 +45,7 @@ bool CUdpListener::create()
         }
         if (bind(fd.fd, (struct sockaddr *) &(*it), sizeof(*it)) < 0)
         {
-            LOGE("bind socket to ip port error %s:%d!\n",
-                    inet_ntoa((*it).sin_addr), ntohs((*it).sin_port));
+            LOGE("bind socket to ip port error %s:%d!\n", inet_ntoa((*it).sin_addr), ntohs((*it).sin_port));
             return false;
         }
         _fds.push_back(fd);
@@ -125,18 +124,21 @@ void CUdpListener::_doread(CUdpSockData * sk)
     struct sockaddr_in addr;
     socklen_t flen = (socklen_t)sizeof(struct sockaddr);
     ssize_t len;
-    if ((len = recvfrom(sk->fd, &hd, sizeof(hd), 0, (struct sockaddr *)&(addr), &flen)) != sizeof(hd))
+    if ((len = recvfrom(sk->fd, &hd, sizeof(CCNI_HEADER), 0, (struct sockaddr *)&(addr), &flen))!= sizeof(hd))
     {
-        LOGW("receive ccni header len error, discard!\n");
+        LOGW("receive ccni header error, discard!\n");
         return;
     }
-
+   
     if (!hd.verify())
     {
         LOGW("not valid ccni connect req header, discard.\n");
         return;
     }
+    static int udpacct = 0;
+    LOGW("udp account %d\n", ++udpacct);
     _pool.assign(new CUdpJob(sk, hd, addr, this));
+
 }
 
 bool CUdpListener::CUdpJob::run()
@@ -144,22 +146,22 @@ bool CUdpListener::CUdpJob::run()
     LOGD("cudp job run.\n");
     LOGV("received ccni header from %s:%d is :\n", inet_ntoa(_addr.sin_addr), ntohs(_addr.sin_port));
     DUMPBIN(&_hd, sizeof(_hd));
-    
+
     const char * sec = ((CUdpListener *)_arg)->_cfg.secret.c_str();
     int seclen = strlen(sec);
     unsigned char buf[512];
     memcpy(buf, &_addr, sizeof(_addr));
     memcpy(buf + sizeof(_addr), sec, seclen);
-    
+
     //generate secret key.
     md5_calc((uint8_t *)&(_hd.secret1), buf, sizeof(_addr)+seclen);
     LOGD("secret1:%x\n", _hd.secret1);
- 
+
     CSecKeyMap & map(((CUdpListener *)_arg)->_smap);
-    
+
     if (!map.insert(_hd.secret1, _hd.secret2, _sock, _addr))
     {
-        LOGE("pair {secret key, addr} alread in map.\n");
+        LOGW("pair {secret key, addr} alread in map.\n");
         delete this;
         return false;
     }
@@ -169,13 +171,14 @@ bool CUdpListener::CUdpJob::run()
     //send back key.
     if (!_sock->sendto(&_hd, sizeof(_hd), &_addr, sizeof(_addr)))
     {
-        LOGE("send connect response error: %s\n", strerror(errno));
+        LOGW("send connect response error: %s\n", strerror(errno));
         map.remove(_hd.secret1);
         delete this;
         return false;
 
     }
-
+    static int udpacct = 0;
+    LOGW("udp send back count %d\n", ++udpacct);
     delete this;
     return true;
 }

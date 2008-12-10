@@ -202,15 +202,20 @@ int tcp_write(int fd, void * buf, int len)
             //LOGW("write to %d error: %s!\n", fd, strerror(errno));
             return -1;
         }
-        if (errno == EAGAIN)
+        if (ret < 0 && errno == EAGAIN)
         {
-            //LOGV("write EAGAIN\n");
-            usleep(1);
+             LOGW("write EAGAIN\n");
+            //usleep(1);
+        }
+        if (ret < len-wlen)
+        {
+                LOGW("write EAGAIN...\n");
         }
         if (ret > 0)
         {
            wlen += ret;
         }
+        
     }
     return wlen;
 }
