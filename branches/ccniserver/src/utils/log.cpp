@@ -30,6 +30,7 @@ int CLog::_instance = 0;
 pthread_t CLog::_pth = 0;
 
 CCMsgQueue * CLog::_queue= NULL;
+//CLog::CAllocator CLog::_alloc;
 
 CLog::CLog(const char * fname, LOGTYPE type, LOGFILE_CFG policy, int fsize) :
     _fname(fname), _fnumber(0), _lpolicy(policy), _fsize(fsize), _logfp(0), _type(type)
@@ -101,7 +102,7 @@ int CLog::dumpbin(const void * buf, int len)
     {
         return 0;
     }
-    LOGITEM * item = new LOGITEM(this);
+    LOGITEM * item =  new LOGITEM(this);
     const unsigned char * base = (const unsigned char *)buf;
     int llen = 0, i;
     for (i = 0; i <len; i++)
@@ -151,7 +152,7 @@ int CLog::print(int level, const char * file, const char * function, int line, c
     {
         return 0;
     }
-    LOGITEM * item = new LOGITEM(this);
+    LOGITEM * item =  new LOGITEM(this);
     struct timeval tm;
     gettimeofday(&tm, NULL);
     localtime_r(&(tm.tv_sec), &(item->logtime));
@@ -235,6 +236,7 @@ void CLog::update(LOGITEM * item)
         }
     fprintf(_logfp, item->txt);
     fflush(_logfp);
+    //_alloc.free(item);
     delete item;
 }
 

@@ -62,28 +62,29 @@ bool CClient::doread()
         return false;
     }
     uint32_t c = CEngine::instance().counter().incMsgCnt();
-    if ((c %100) == 0)
+    if ((c %1000) == 0)
     {
         LOGW("total message count:%d\n", c);
     }
-    _pstate = st_sending;
+  
     LOGV("got a ccni msg:\n%s\n", _curmsg.data());
     CCNIMsgPacker bd;
 
     procMsgs(_curmsg, _resmsg, bd);
-
+   
+    _pstate = st_sending;
     return dosend();
 }
 
 bool CClient::dosend()
 {
-    /*
+     /*
     _resmsg.block_send(_tcpfd);
     _resmsg.free();
     _curmsg.free();
     _pstate = st_reading;
     return true;
-    */
+   */
     CCNIMsgPacker::state_t st = _resmsg.send(_tcpfd);
     if (st == CCNIMsgPacker::st_sderror)
     {
@@ -99,15 +100,16 @@ bool CClient::dosend()
         _curmsg.free();
         return true;
     }
+    LOGW("send eagain.\n");
     return true;
 }
 bool CClient::run()
 {
-     static volatile int cnt = 0;
+     //static volatile int cnt = 0;
   
     //if (++cnt == 1)
     {
-        LOGV("user job run %d times.\n", ++cnt);
+       // LOGV("user job run %d times.\n", ++cnt);
     }
     bool ret;
     if (_pstate == st_reading)
@@ -122,7 +124,7 @@ bool CClient::run()
     {
         LOGV("_psate = %s\n", _pstate == st_reading ? "reading":"sending");
         CEngine::instance().usrListener().assign(this, (_pstate == st_reading) ? 1 : 0);
-        LOGV("re assign ok.\n");
+       // LOGV("re assign ok.\n");
     }
     else
     {

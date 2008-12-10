@@ -42,7 +42,7 @@ class CCMsgQueue
 private:
 
     CEvent _evt;
-    deque <void *> _data;
+    list <void *> _data;
 
 public:
 
@@ -88,7 +88,8 @@ public:
             _evt.wait();
         }
         void * p = (*_data.begin());
-        _data.pop_front();
+        _data.erase(_data.begin());
+        //_data.pop_front();
         return p;
     }
 };
