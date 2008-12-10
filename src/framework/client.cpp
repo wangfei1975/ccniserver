@@ -23,6 +23,7 @@
 
 #include "client.h"
 #include "engine.h"
+#include "broadcaster.h"
 
 bool CClient::doread()
 {
@@ -68,11 +69,13 @@ bool CClient::doread()
     }
   
     LOGV("got a ccni msg:\n%s\n", _curmsg.data());
-    CCNIMsgPacker bd;
-
+    CBroadCaster bd;
+    _resmsg.create();
+    bd.create();
     procMsgs(_curmsg, _resmsg, bd);
    
     _pstate = st_sending;
+    bd.destroy();
     return dosend();
 }
 
@@ -128,11 +131,11 @@ bool CClient::run()
     }
     else
     {
-        CEngine::instance().dataMgr().delClient(this);
+        
         _resmsg.free();
         _curmsg.free();
         close(_tcpfd);
-        delete this;
+        CEngine::instance().dataMgr().delClient(this);
     }
     return ret;
 }

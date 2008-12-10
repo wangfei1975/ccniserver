@@ -4,7 +4,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             data_mgr.h                                                              */
+/*             room.h                                                                  */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -18,72 +18,52 @@
 /*             bjwf       bjwf2000@gmail.com                                           */
 /*                                                                                     */
 /*  histroy                                                                            */
-/*             2008-11-23     initial draft                                            */
+/*             2008-12-09     initial draft                                            */
 /***************************************************************************************/
-#ifndef DATA_MGR_H_
-#define DATA_MGR_H_
-#include <map>
+#ifndef ROOM_H_
+#define ROOM_H_
 #include <string>
-#include "log.h"
-#include "mutex.h"
+#include <set>
 #include "client.h"
-#include "ccni_msg.h"
+#include "log.h"
+#include "broadcaster.h"
 
-class CDataMgr
+class CRoom
 {
 public:
-    typedef map<string, CClient *> client_list_t;
+    typedef set <CClient *> usr_list_t;
 private:
-    client_list_t _list;
-    CMutex _listlk;
+    int _capacity;
+    int _id;
+    CMutex _lk;
+    usr_list_t _usrlist;
 public:
-    CClient * findClient(const char * uname)
+    bool enter(CClinet * c, CBroadCaster & bd)
     {
-        CAutoMutex du(_listlk);
-        client_list_t::iterator it = _list.find(uname);
-        if (it == _list.end())
+        usr_list_t::iterator it;
+        CAutoMutex du(_lk);
+        for (it = _usrlist.begin(); it != _usrlist.end(); ++it)
         {
-            return NULL;
+            bd.insertaddr((*it)->udpsock(), (*it)->udpaddr);
         }
-        return (it->second);
+        return _usrlist.insert(c).second;
     }
-    bool addClient(CClient * c)
+    bool leave(CClient * c, CBroadCaster & bd)
     {
-        CAutoMutex du(_listlk);
-        client_list_t::iterator it = _list.find(c->uname());
-        if (it != _list.end())
+        usr_list_t::iterator it;
+        CAutoMutex du(_lk);
+        it = _usrlist.find(c);
+        if (it != _usrlist.end())
         {
-            return false;
+            _usrlist.erase(it);
+            for (it = _usrlist.begin(); it != _usrlist.end(); ++it)
+            {
+                bd.insertaddr((*it)->udpsock(), (*it)->udpaddr);
+            }
+            return true;
         }
-        _list[c->uname()] = c;
-        return true;
-    }
-    void delClient(CClient * c)
-    {
-        CAutoMutex du(_listlk);
-        client_list_t::iterator it = _list.find(c->uname());
-        if (it == _list.end())
-        {
-            LOGW("not find user %s.\n", c->uname());
-            return;
-        }
-        _list.erase(it);
-        delete c;
-    }
-    bool create()
-    {
-        return true;
-    }
-    void destroy()
-    {
-        client_list_t::iterator it;
-        CAutoMutex du(_listlk);
-        for (it = _list.begin(); it != _list.end(); ++it)
-        {
-            delete (it->second);
-        }
-        _list.clear();
-        
+        return false;
     }
 };
-#endif /*DATA_MGR_H_*/
+
+#endif /*ROOM_H_*/

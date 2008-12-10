@@ -23,21 +23,21 @@
 
 #include "client.h"
 #include "engine.h"
+#include "broadcaster.h"
 
 CClient::hndtable_t CClient::msghnds[] =
 {
 { xmlTagCCNI, &CClient::doCCNI },
 { xmlTagMyState, &CClient::doMyState },
 { xmlTagLogout, &CClient::doLogout },
+{ xmlTagEnterRoom, &CClient::doEnterRoom},
 { NULL, &CClient::doUnknow } 
 };
 
-void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
+void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CBroadCaster & bd)
 {
 
     int i;
-    res.create();
-    bd.create();
     for (CXmlNode msg = pmsg.getfirst(); !msg.isEmpty(); msg = msg.next())
     {
         if (msg.type() != XML_ELEMENT_NODE)
@@ -65,15 +65,18 @@ void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CCNIMsgPacker 
     }
 
 }
-
-int CClient::doUnknow(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
+int CClient::doEnterRoom(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
+{
+    return 0;
+}
+int CClient::doUnknow(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
 {
     CXmlMsg lgmsg;
     lgmsg.create(xmlTagUnknowMessage);
     res.appendmsg(lgmsg);
     return 0;
 }
-int CClient::doCCNI(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
+int CClient::doCCNI(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
 {
     // LOGV("enter\n");
 
@@ -90,7 +93,7 @@ int CClient::doCCNI(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
     // LOGV("out\n");
     return 0;
 }
-int CClient::doMyState(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
+int CClient::doMyState(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
 {
     CXmlMsg lgmsg;
     lgmsg.create(xmlTagMyStateRes);
@@ -98,7 +101,7 @@ int CClient::doMyState(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
     res.appendmsg(lgmsg);
     return 0;
 }
-int CClient::doLogout(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd)
+int CClient::doLogout(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
 {
     return 0;
 }
