@@ -17,6 +17,10 @@
 #define xmlTagLogin                     "Login"
 #define xmlTagLoginRes                  "LoginRes"
 
+#define xmlTagEnterRoom                 "EnterRoom"
+#define xmlTagEnterRoomRes              "EnterRoomRes"
+
+
 #define xmlTagLogout                    "Logout"
 #define xmlTagLogoutRes                 "LogoutRes"
 

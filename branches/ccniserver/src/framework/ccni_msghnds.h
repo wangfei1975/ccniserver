@@ -23,7 +23,7 @@
 #ifndef CCNI_MSGHNDS_H_
 #define CCNI_MSGHNDS_H_
 
-typedef  int (CClient::*msghnd_t)(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
+typedef  int (CClient::*msghnd_t)(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd);
 struct hndtable_t
 {
     const char * label;
@@ -31,11 +31,12 @@ struct hndtable_t
 };
 static hndtable_t msghnds[];
 
-void procMsgs(CCNIMsgParser & msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
-int doCCNI(CXmlNode msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
-int doMyState(CXmlNode  msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
-int doLogout(CXmlNode  msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
-int doUnknow(CXmlNode  msg, CCNIMsgPacker & res, CCNIMsgPacker & bd);
+void procMsgs(CCNIMsgParser & msg, CCNIMsgPacker & res, CBroadCaster & bd);
+int  doCCNI(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd);
+int  doMyState(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd);
+int  doLogout(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd);
+int  doUnknow(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd);
+int  doEnterRoom(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd);
 
 
 #endif /*CCNI_MSGHNDS_H_*/

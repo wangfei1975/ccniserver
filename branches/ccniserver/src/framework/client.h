@@ -41,6 +41,7 @@
  * */
 
 class CUdpSockData;
+class CBroadCaster;
 class CClient : public CJob
 {
 public:
@@ -96,7 +97,18 @@ public:
     {
         return _tcpfd;
     }
-
+    const char * uname()
+    {
+        return _usrinfo.name.c_str();
+    }
+    CUdpSockData * udpsock()
+    {
+        return _udp;
+    }
+    struct sockaddr_in & udpaddr()
+    {
+        return _udpaddr;
+    }
     const char * strstate()
     {
         static const struct
