@@ -23,15 +23,18 @@
 #ifndef DATA_MGR_H_
 #define DATA_MGR_H_
 #include <map>
+#include <vector>
 #include <string>
 #include "log.h"
 #include "mutex.h"
 #include "client.h"
 #include "ccni_msg.h"
+#include "room.h"
 
 class CDataMgr
 {
 public:
+    typedef vector <CRoom> room_list_t;
     typedef map<string, CClient *> client_list_t;
 private:
     client_list_t _list;
