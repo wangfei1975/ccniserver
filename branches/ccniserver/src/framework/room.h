@@ -27,7 +27,7 @@
 #include "client.h"
 #include "log.h"
 #include "broadcaster.h"
-
+ 
 class CRoom
 {
 public:
@@ -38,32 +38,10 @@ private:
     CMutex _lk;
     usr_list_t _usrlist;
 public:
-    bool enter(CClinet * c, CBroadCaster & bd)
-    {
-        usr_list_t::iterator it;
-        CAutoMutex du(_lk);
-        for (it = _usrlist.begin(); it != _usrlist.end(); ++it)
-        {
-            bd.insertaddr((*it)->udpsock(), (*it)->udpaddr);
-        }
-        return _usrlist.insert(c).second;
-    }
-    bool leave(CClient * c, CBroadCaster & bd)
-    {
-        usr_list_t::iterator it;
-        CAutoMutex du(_lk);
-        it = _usrlist.find(c);
-        if (it != _usrlist.end())
-        {
-            _usrlist.erase(it);
-            for (it = _usrlist.begin(); it != _usrlist.end(); ++it)
-            {
-                bd.insertaddr((*it)->udpsock(), (*it)->udpaddr);
-            }
-            return true;
-        }
-        return false;
-    }
+    bool enter(CClient * c, CBroadCaster & bd);
+     
+    bool leave(CClient * c, CBroadCaster & bd);
+     
 };
 
 #endif /*ROOM_H_*/
