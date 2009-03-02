@@ -52,6 +52,7 @@ public:
 };
 //
 //a mutex helper, to avoid forget unlock, espically in multiple exit point functions.
+// copy
 //
 class CAutoMutex
 {
