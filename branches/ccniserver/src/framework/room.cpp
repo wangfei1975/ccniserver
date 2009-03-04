@@ -49,3 +49,6 @@ bool CRoom::leave(CClient * c, CBroadCaster & bd)
     }
     return false;
 }
+
+
+
