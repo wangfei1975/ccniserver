@@ -2,24 +2,25 @@
 OS<p>
    Linux (Ubuntu 804 or compatible OS)
 
-External packages<p>
-   libxml2<p>
-   libssl<p>
-   libsqlite3<p>
+<b>External packages</b><p>
+   * libxml2<p>
+   * libssl<p>
+   * libsqlite3<p>
+   * libboost<p>
 
 
-Compiler<p>
+<b>Compiler</b><p>
    gcc 3.2.3 or later version .
 
-IDE (Optional)<p>
+<b>IDE (Optional)</b><p>
    eclipse 3.3 and CDT 4.0.3 or compatible version.
 
-Version control
+<b>Version control</b>
    Subversion command-line client, version 1.4.6
 
    Subclipse 1.4.6 (Optional)
 
-Prepare for development machine, reference steps on Ubuntu 8.04
+<b>Prepare for development machine, reference steps on Ubuntu 8.04</b><p>
  * install libxml2-dev
      $ sudo apt-get install libxml2-dev
 
@@ -28,6 +29,9 @@ Prepare for development machine, reference steps on Ubuntu 8.04
 
  * install libsqlite3-dev
      $ sudo apt-get install libsqlite3-dev
+
+ * install libboost-dev
+     $ sudo apt-get install libboost-dev
 
  * install subversion client
      $ sudo apt-get install subversion
@@ -43,7 +47,7 @@ Prepare for development machine, reference steps on Ubuntu 8.04
  * install subclipse (optional)
      Please refer to http://subclipse.tigris.org/install.html
 
-Get source code
+<b>Get source code</b>
  . For team members
     $svn checkout https://ccniserver.googlecode.com/svn/trunk/ccniserver --username  <your googlecode account>
      When prompted, enter your generated googlecode.com password.
@@ -52,7 +56,7 @@ Get source code
     $svn checkout http://ccniserver.googlecode.com/svn/trunk/ ccniserver-read-only
 
 
-Build source
+<b>Build source</b>
    $cd ccniserver
 
    $make
