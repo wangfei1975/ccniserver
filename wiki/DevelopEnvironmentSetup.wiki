@@ -9,8 +9,8 @@ OS<p>
   
 
 <b>Compiler</b><p>
-   gcc 3.2.3 or later version .
-
+   gcc 4.3.2 or later version.(make use of Smart pointers in C++ TR1)
+    
 <b>IDE (Optional)</b><p>
    eclipse 3.3 and CDT 4.0.3 or compatible version.
 
