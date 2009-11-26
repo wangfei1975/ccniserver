@@ -6,8 +6,7 @@ OS<p>
    * libxml2<p>
    * libssl<p>
    * libsqlite3<p>
-   * libboost<p>
-
+  
 
 <b>Compiler</b><p>
    gcc 3.2.3 or later version .
@@ -30,10 +29,7 @@ OS<p>
  * install libsqlite3-dev
      $ sudo apt-get install libsqlite3-dev
 
- * install libboost-dev
-     $ sudo apt-get install libboost-dev
-
- * install subversion client
+  * install subversion client
      $ sudo apt-get install subversion
 
  * install a GUI svn client (optional)
