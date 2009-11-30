@@ -55,18 +55,19 @@ void CUserListener::CListenThread::doWork()
             if (events[i].data.ptr == NULL)
             {
                
-                CClient * cli;
+                CClientTask * cli;
                 int isread;
                 read(_pipfd[0], &cli, sizeof(cli));
                 read(_pipfd[0], &isread, sizeof(isread));
-              //  LOGI("addr user %d\n", isnew);
+                 LOGI("addr user %d\n", isread);
                 _epollAdd(cli, isread);
             }
             else
             {
-                 _epollDel((CClient *)events[i].data.ptr);
-                 CEngine::instance().threadsPool().assign((CClient *)events[i].data.ptr);
-            }
+                CClientTask * cli = (CClientTask *)events[i].data.ptr;
+                 _epollDel(cli);
+                 CEngine::instance().threadsPool().assign(cli);
+           }
         }
 
         pthread_testcancel();

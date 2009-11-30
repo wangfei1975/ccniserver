@@ -23,6 +23,7 @@
 
 #ifndef CLINET_H_
 #define CLINET_H_
+#include <tr1/memory>
 #include "log.h"
 #include "ccni_msg.h"
 #include "dbi.h"
@@ -42,6 +43,10 @@
 
 class CUdpSockData;
 class CBroadCaster;
+class CClient;
+typedef std::tr1::shared_ptr<CClient> CClientPtr;
+typedef std::tr1::weak_ptr<CClient> CClientWeakPtr;
+
 class CClient : public CJob
 {
 public:
@@ -82,8 +87,8 @@ private:
 public:
     CClient(int tcpfd, CUdpSockData * udp, const secret_key_t & k1, const secret_key_t & k2,
             const struct sockaddr_in & udpaddr, const CDataBase::CRecord & usr) :
-        _state(Online), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr), _usrinfo(usr),
-                _pstate(st_reading)
+        _state(Online), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr),
+                _usrinfo(usr), _pstate(st_reading)
     {
 
     }
@@ -93,6 +98,10 @@ public:
     }
 
 public:
+    proc_state_t pstate()
+    {
+        return _pstate;
+    }
     int tcpfd()
     {
         return _tcpfd;
@@ -117,16 +126,15 @@ public:
             const char * name;
         } tab[]=
         {
-            { Offline, "Offline" },
-            { Online, "Online" },
-            { Idle, "Idle" },
-            { Sessional, "Sessional" },
-            { Ready, "Ready" },
-            { Watching, "Watching" },
-            { Moving, "Moving" },
-            { Pondering, "Pondering" },
-            { Offline, "Unknow state" } 
-        };
+        { Offline, "Offline" },
+        { Online, "Online" },
+        { Idle, "Idle" },
+        { Sessional, "Sessional" },
+        { Ready, "Ready" },
+        { Watching, "Watching" },
+        { Moving, "Moving" },
+        { Pondering, "Pondering" },
+        { Offline, "Unknow state" } };
         int i;
         for (i = 0; i < (int)(sizeof(tab)/sizeof(tab[0]))-1; i++)
         {
@@ -142,4 +150,22 @@ public:
     virtual bool run();
 
 };
+class CClientTask : public CJob
+{
+private:
+    CClientWeakPtr _cli;
+public:
+    CClientPtr lock()
+    {
+        return _cli.lock();
+    }
+    CClientTask(CClientWeakPtr cli) :
+        _cli(cli)
+    {
+
+    }
+    virtual bool run();
+};
+
 #endif /*CLINET_H_*/
+

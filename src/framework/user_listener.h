@@ -91,14 +91,14 @@ public:
                 _pipfd[0]=_pipfd[1] = _epfd = -1;
             }
         }
-        void assign(CClient * usr, int isread)
+        void assign(CClientTask * usr, int isread)
         {
             write(_pipfd[1], &usr, sizeof(usr));
             write(_pipfd[1], &isread, sizeof(isread));
         }
         virtual void doWork();
 private:
-        bool _epollAdd(CClient * cli, int isread)
+        bool _epollAdd(CClientTask * wcli, int isread)
         {
             struct epoll_event ev;
 
@@ -115,8 +115,12 @@ private:
             {
                ev.events = EPOLLOUT;
             }
-            ev.data.ptr = cli;
-
+            ev.data.ptr = wcli;
+            CClientPtr cli = wcli->lock();
+            if (cli == NULL)
+            {
+                return false;
+            }
             if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->tcpfd(), &ev) < 0)
             {
 
@@ -135,9 +139,14 @@ private:
             return true;
 
         }
-        void _epollDel(CClient * cli)
+        void _epollDel(CClientTask * wcli)
         {
             struct epoll_event ev;
+            CClientPtr cli = wcli->lock();
+            if (cli == NULL)
+            {
+               return ;
+            }
             if (epoll_ctl(_epfd, EPOLL_CTL_DEL, cli->tcpfd(), &ev) < 0)
             {
                 LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
@@ -148,7 +157,7 @@ private:
     list <CListenThread *> _ths;
     CMutex _lk;
 public:
-    void assign(CClient * usr, int isread=1)
+    void assign(CClientTask * usr, int isread=1)
     {
       
         CAutoMutex dumy(_lk);

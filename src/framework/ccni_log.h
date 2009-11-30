@@ -31,6 +31,8 @@ class CCNILog : public CLog
 private:
     const CLogConfig & _cfg;
 public:
+    //fixme: cfg.path was empty while the constructor invoked.
+    //
     CCNILog(const CLogConfig & cfg) :
         CLog(cfg.path.c_str(), CLog::EVENT_LOG, CLog::SPLIT_ON_DATE), _cfg(cfg)
     {

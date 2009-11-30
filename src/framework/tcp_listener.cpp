@@ -245,10 +245,12 @@ bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in
     msg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2);
     
     msg.block_send(_sk->fd);
-
-    CClient * cli = new CClient(_sk->fd, udp, hd.secret1, hd.secret2, udpaddr, rec);
+    
+    CClientPtr cli(new CClient(_sk->fd, udp, hd.secret1, hd.secret2, udpaddr, rec));
     CEngine::instance().dataMgr().addClient(cli);
-    CEngine::instance().usrListener().assign(cli);
+    CClientWeakPtr wcli(cli);
+    CClientTask * ctsk = new CClientTask(wcli);
+    CEngine::instance().usrListener().assign(ctsk);
     CEngine::instance().counter().incLoginCnt();
     LOGW("loging succ count:%d\n",  CEngine::instance().counter().loginCount());
     delete _sk;

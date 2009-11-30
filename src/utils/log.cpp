@@ -231,10 +231,10 @@ void CLog::update(LOGITEM * item)
 
     }
     if (_type == DEBUG_LOG)
-        {
-            printf(item->txt);
-        }
-    fprintf(_logfp, item->txt);
+    {
+       printf("%s", item->txt);
+    }
+    fprintf(_logfp, "%s", item->txt);
     fflush(_logfp);
     //_alloc.free(item);
     delete item;

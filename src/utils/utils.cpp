@@ -32,6 +32,9 @@
 #include <openssl/md5.h>
 #include <string>
 #include <libxml/parser.h>
+#include <limits.h>
+
+
 #include "utils.h"
 #include "log.h"
 
@@ -116,7 +119,7 @@ const char * get_executable_path()
        if (readlink("/proc/self/exe", path, PATH_MAX) > 0)
        {
            char * p = path + strlen(path) - 1;
-           while(*p != '/' & p > path)
+           while(*p != '/' && p > path)
            {
                p--;
            }
