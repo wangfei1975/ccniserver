@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CCNIServerConfiguration>
+    <!--
+       local IP and port list used for bind socket in multiple network adaptors case
+       IP = 0.0.0.0 means IN_ADDRANY
+       Default TCP Port is 20081
+       Default UDP Port is 20082
+      -->
+   <TCPListenIPList>
+      <IP>0.0.0.0:20081</IP>
+   </TCPListenIPList>
+   
+   <UDPListenIPList>   
+      <IP>0.0.0.0:20082</IP>
+   </UDPListenIPList>
+   
+
+    <!--
+        log configurations. all fields are optional.
+        Path      location to store log file. default is:  <$CCNISERVER_HOME>/bin/logs
+        LogLogin  log user login event, default is 1
+        LogLogout log user logout event, default is 1
+    -->
+   <LogConfig>
+     <Path>logs/</Path>
+     <LogLogin>1</LogLogin>
+     <LogLogout>1</LogLogout>
+     <!--TBD-->
+   </LogConfig>
+   
+   <Secret>hello</Secret>
+   
+   <LoginTimeOut>5</LoginTimeOut>
+   
+   <SecretKeyTimeOut>5</SecretKeyTimeOut>
+   
+   <!--
+      becareful of msg queue size. (1000)    
+   -->
+   <PoolThreadCount>16</PoolThreadCount>
+   <UserListenThreadCount>2</UserListenThreadCount>
+   
+   <DBPathName>db/ccni.db</DBPathName>
+   
+   <!--
+        game rooms
+    -->
+   <Rooms>
+   </Rooms>   
+
+</CCNIServerConfiguration>
+
+
+
+
