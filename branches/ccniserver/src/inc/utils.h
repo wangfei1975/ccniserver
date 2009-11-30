@@ -23,7 +23,10 @@
 #ifndef COMMON_UTILITY_H_
 #define COMMON_UTILITY_H_
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <string>
+#include <string.h>
 
 
 //return executable binary path of current process.

@@ -27,14 +27,13 @@
 
 bool CClient::doread()
 {
-    
- 
+
     CCNIMsgParser::state_t st = _curmsg.read(_tcpfd);
     LOGV("read state: %d\n", st);
     if (st == CCNIMsgParser::st_rderror)
     {
 
-       // LOGW("remote disconnected. %s %d\n", inet_ntoa(_udpaddr.sin_addr), ++disccnt);
+        // LOGW("remote disconnected. %s %d\n", inet_ntoa(_udpaddr.sin_addr), ++disccnt);
         LOGW("msg count %d times.\n", CEngine::instance().counter().msgCount());
 
         //tbd: broad cast user NotifyUserLogoff...
@@ -46,7 +45,7 @@ bool CClient::doread()
     {
         LOGW("read a invalid ccni header from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
 
-      //  LOGW("read error cnt:%d\n", ++errcnt);
+        //  LOGW("read error cnt:%d\n", ++errcnt);
 
         return false;
     }
@@ -67,13 +66,13 @@ bool CClient::doread()
     {
         LOGW("total message count:%d\n", c);
     }
-  
+
     LOGV("got a ccni msg:\n%s\n", _curmsg.data());
     CBroadCaster bd;
     _resmsg.create();
     bd.create();
     procMsgs(_curmsg, _resmsg, bd);
-   
+
     _pstate = st_sending;
     bd.destroy();
     return dosend();
@@ -81,13 +80,13 @@ bool CClient::doread()
 
 bool CClient::dosend()
 {
-     /*
-    _resmsg.block_send(_tcpfd);
-    _resmsg.free();
-    _curmsg.free();
-    _pstate = st_reading;
-    return true;
-   */
+    /*
+     _resmsg.block_send(_tcpfd);
+     _resmsg.free();
+     _curmsg.free();
+     _pstate = st_reading;
+     return true;
+     */
     CCNIMsgPacker::state_t st = _resmsg.send(_tcpfd);
     if (st == CCNIMsgPacker::st_sderror)
     {
@@ -108,11 +107,11 @@ bool CClient::dosend()
 }
 bool CClient::run()
 {
-     //static volatile int cnt = 0;
-  
+    //static volatile int cnt = 0;
+
     //if (++cnt == 1)
     {
-       // LOGV("user job run %d times.\n", ++cnt);
+        // LOGV("user job run %d times.\n", ++cnt);
     }
     bool ret;
     if (_pstate == st_reading)
@@ -126,17 +125,38 @@ bool CClient::run()
     if (ret)
     {
         LOGV("_psate = %s\n", _pstate == st_reading ? "reading":"sending");
-        CEngine::instance().usrListener().assign(this, (_pstate == st_reading) ? 1 : 0);
-       // LOGV("re assign ok.\n");
+        // LOGV("re assign ok.\n");
     }
     else
     {
-        
         _resmsg.free();
         _curmsg.free();
         close(_tcpfd);
-        CEngine::instance().dataMgr().delClient(this);
     }
     return ret;
 }
+bool CClientTask::run()
+{
+    CClientPtr c = _cli.lock();
+    if (c == NULL)
+    {
+        return false;
+    }
 
+    if (c->run())
+    {
+        int s = (c->pstate() == CClient::st_reading) ? 1 : 0;
+        CEngine::instance().usrListener().assign(this, s);
+        LOGI("run ok.\n")
+        return true;
+    }
+    else
+    {
+        CEngine::instance().dataMgr().delClient(c->uname());
+        LOGI("client cnt %d\n",  CEngine::instance().dataMgr().userCount());
+        delete this;
+        return false;
+    }
+
+    return false;
+}

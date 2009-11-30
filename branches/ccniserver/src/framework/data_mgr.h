@@ -35,22 +35,27 @@ class CDataMgr
 {
 public:
     typedef vector <CRoom> room_list_t;
-    typedef map<string, CClient *> client_list_t;
+    typedef map<string, CClientPtr> client_list_t;
 private:
     client_list_t _list;
     CMutex _listlk;
 public:
-    CClient * findClient(const char * uname)
+    int userCount()
+    {
+        CAutoMutex du(_listlk);
+        return _list.size();
+    }
+    CClientPtr findClient(const char * uname)
     {
         CAutoMutex du(_listlk);
         client_list_t::iterator it = _list.find(uname);
         if (it == _list.end())
         {
-            return NULL;
+            return CClientPtr();
         }
         return (it->second);
     }
-    bool addClient(CClient * c)
+    bool addClient(CClientPtr c)
     {
         CAutoMutex du(_listlk);
         client_list_t::iterator it = _list.find(c->uname());
@@ -61,17 +66,16 @@ public:
         _list[c->uname()] = c;
         return true;
     }
-    void delClient(CClient * c)
+    void delClient(const char * uname)
     {
         CAutoMutex du(_listlk);
-        client_list_t::iterator it = _list.find(c->uname());
+        client_list_t::iterator it = _list.find(uname);
         if (it == _list.end())
         {
-            LOGW("not find user %s.\n", c->uname());
+            LOGW("not find user %s.\n", uname);
             return;
         }
         _list.erase(it);
-        delete c;
     }
     bool create()
     {
@@ -83,10 +87,9 @@ public:
         CAutoMutex du(_listlk);
         for (it = _list.begin(); it != _list.end(); ++it)
         {
-            delete (it->second);
+          //  delete (it->second);
         }
         _list.clear();
-        
     }
 };
 #endif /*DATA_MGR_H_*/
