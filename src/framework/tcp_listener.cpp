@@ -224,6 +224,11 @@ bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in
         return false;
     }
 
+   //for performance test.
+   CEngine::instance().db().verifyUser(username.c_str(), password.c_str(), rec);
+   rec.name = username;
+   rec.pwd = password;
+/*
     if (CEngine::instance().db().verifyUser(username.c_str(), password.c_str(), rec) < 0)
     {
         LOGW("user name or password error.\n");
@@ -237,6 +242,7 @@ bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in
 
         return false;
     }
+*/
     LOGI("user %s login success.\n", username.c_str());
      
     lgmsg.addParameter(xmlTagReturnCode, 0);
@@ -247,12 +253,17 @@ bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in
     msg.block_send(_sk->fd);
     
     CClientPtr cli(new CClient(_sk->fd, udp, hd.secret1, hd.secret2, udpaddr, rec));
-    CEngine::instance().dataMgr().addClient(cli);
+    if (!CEngine::instance().dataMgr().addClient(cli))
+    {
+        LOGE("add client error!\n");
+        return false;
+    }
     CClientWeakPtr wcli(cli);
     CClientTask * ctsk = new CClientTask(wcli);
     CEngine::instance().usrListener().assign(ctsk);
     CEngine::instance().counter().incLoginCnt();
-    LOGW("loging succ count:%d\n",  CEngine::instance().counter().loginCount());
+    LOGI("loging succ count:%d\n",  CEngine::instance().counter().loginCount());
+    LOGI("client cnt %d\n",  CEngine::instance().dataMgr().userCount());
     delete _sk;
     return true;
 }

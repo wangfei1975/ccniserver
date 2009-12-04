@@ -146,14 +146,14 @@ int CDataBase::verifyUser(const char * name, const char * pwd, CRecord & rec)
         }
         else
         {
-            LOGW("%s error pwd", name);
+            LOGW("%s error pwd\n", name);
             ret = -1;
         }
 
     }
     else
     {
-        LOGW("error user name %s!", name);
+        LOGW("error user name %s\n", name);
         ret = -1;
     }
 

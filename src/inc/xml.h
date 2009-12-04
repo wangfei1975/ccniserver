@@ -26,7 +26,7 @@
 
 #include <libxml/parser.h>
 #include <string>
-
+#include <string.h>
 /*
  * a simple wrapper of xmlNodePtr
  */

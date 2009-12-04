@@ -63,9 +63,12 @@ private:
     const CConfig & _cfg;
     CSecKeyMap & _smap;
     CThreadsPool & _pool;
+
+    CMutex _seedlk;
+    uint64_t _keyseed;
 public:
     CUdpListener(const CConfig &cfg, CSecKeyMap & smap, CThreadsPool & pool) :
-        _epfd(-1), _cfg(cfg), _smap(smap), _pool(pool)
+        _epfd(-1), _cfg(cfg), _smap(smap), _pool(pool),_keyseed(0)
     {
     }
 
@@ -75,6 +78,11 @@ public:
     }
 
 public:
+    uint64_t getKey() 
+    {
+        CAutoMutex(_seedlk);
+        return _keyseed++;
+    }
     bool create();
     void destroy();
     virtual void doWork();

@@ -93,8 +93,9 @@ int main(int argc, char * argv[])
     msg.create();
     CXmlMsg lgmsg;
     lgmsg.create(xmlTagLogin);
-
-    lgmsg.addParameter(xmlTagUserName, "bjwf");
+    char usrn[128];
+    sprintf(usrn, "bjwf%d", getpid());
+    lgmsg.addParameter(xmlTagUserName, usrn);
     lgmsg.addParameter(xmlTagPassword, "123");
 
     msg.appendmsg(lgmsg);

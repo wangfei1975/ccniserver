@@ -148,6 +148,7 @@ bool CUdpListener::CUdpJob::run()
     DUMPBIN(&_hd, sizeof(_hd));
 
     const char * sec = ((CUdpListener *)_arg)->_cfg.secret.c_str();
+    uint64_t ukey = ((CUdpListener *)_arg)->getKey();
     int seclen = strlen(sec);
     unsigned char buf[512];
     memcpy(buf, &_addr, sizeof(_addr));

@@ -10,4 +10,11 @@
     2. write a new queue instead of system V queue.
     
     TODO: rewrite threads_pool, busylist & idle list.    
-    
+
+2009-12-04    
+    1. add shared_ptr
+    2. sometimes we will have duplicated secret_key_t need fix.
+
+ 
+
+
