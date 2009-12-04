@@ -34,7 +34,7 @@ void CUserListener::CListenThread::doWork()
             pthread_testcancel();
             continue;
         }
-        LOGD("epoll wait events: %d\n", nfds);
+       // LOGV("epoll wait events: %d\n", nfds);
         for (int i = 0; i < nfds; i++)
         {
             //if (!((events[i].events & EPOLLIN) ||(events[i].events & EPOLLPRI)))
@@ -57,9 +57,15 @@ void CUserListener::CListenThread::doWork()
                
                 CClientTask * cli;
                 int isread;
-                read(_pipfd[0], &cli, sizeof(cli));
-                read(_pipfd[0], &isread, sizeof(isread));
-                 LOGI("addr user %d\n", isread);
+                if (read(_pipfd[0], &cli, sizeof(cli)) < 0)
+                {
+                    LOGE("read pipe error.\n")
+                }
+                if (read(_pipfd[0], &isread, sizeof(isread)) < 0)
+                {
+                    LOGE("read pipe 1 error.\n");
+                }
+                 LOGI("add user %d\n", isread);
                 _epollAdd(cli, isread);
             }
             else

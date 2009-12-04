@@ -33,8 +33,9 @@ bool CClient::doread()
     if (st == CCNIMsgParser::st_rderror)
     {
 
-        // LOGW("remote disconnected. %s %d\n", inet_ntoa(_udpaddr.sin_addr), ++disccnt);
+        LOGW("remote disconnected. %s\n", inet_ntoa(_udpaddr.sin_addr));
         LOGW("msg count %d times.\n", CEngine::instance().counter().msgCount());
+        LOGW("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
 
         //tbd: broad cast user NotifyUserLogoff...
 

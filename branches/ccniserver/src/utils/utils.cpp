@@ -33,8 +33,6 @@
 #include <string>
 #include <libxml/parser.h>
 #include <limits.h>
-
-
 #include "utils.h"
 #include "log.h"
 
@@ -47,7 +45,7 @@ static bool lock_process(const char * pidfname)
 
     if ((fd = open(pidfname, (O_RDWR | O_CREAT), 0644)) < 0)
     {
-        LOGE("Can't open pid file. lock held by pid %d", pid);
+        LOGE("Can't open pid file. lock held by pid %d\n", pid);
         return false;
     }
     /* Write PID to file, set PID file to read/write for owner, read by others */
@@ -56,13 +54,19 @@ static bool lock_process(const char * pidfname)
     {
         if (flock(fd, (LOCK_EX | LOCK_NB)) < 0)
         {
-            fscanf(fp, "%d", &pid);
-            LOGE("Can't lock process, lock held by pid %d", pid);
+            if (fscanf(fp, "%d", &pid) == 1)
+            {
+                LOGE("Can't lock process, lock held by pid %d\n", pid);
+            }
+            else
+            {
+                LOGE("Can't lock process, read held pid error.\n");
+            }
         }
         else
         {
             pid = getpid();
-            if ( (fprintf(fp, "%d", pid)) && (!fflush(fp)) && (!flock(fd, LOCK_UN)))
+            if ((fprintf(fp, "%d", pid)) && (!fflush(fp)) && (!flock(fd, LOCK_UN)))
             {
                 success = true;
             }
@@ -79,9 +83,12 @@ static int read_pid_file(const char *pid_file)
     FILE *f;
     int pid = 0;
 
-    if ( (f = fopen(pid_file, "r")) != NULL)
+    if ((f = fopen(pid_file, "r")) != NULL)
     {
-        fscanf(f, "%d", &pid);
+        if (fscanf(f, "%d", &pid) != 1)
+        {
+            LOGE("Read pid file error.\n");
+        }
         fclose(f);
     }
     return (pid);
@@ -113,26 +120,28 @@ static bool check_for_lock_process(const char * pidfname)
 
 const char * get_executable_path()
 {
-   static char path[PATH_MAX] = {0};
-   if (path[0] == 0)
-   {
-       if (readlink("/proc/self/exe", path, PATH_MAX) > 0)
-       {
-           char * p = path + strlen(path) - 1;
-           while(*p != '/' && p > path)
-           {
-               p--;
-           }
-           if (*p == '/') *(p+1) = 0;
-       }
-       
-   }
-   return path;
+    static char path[PATH_MAX] =
+    { 0 };
+    if (path[0] == 0)
+    {
+        if (readlink("/proc/self/exe", path, PATH_MAX) > 0)
+        {
+            char * p = path + strlen(path) - 1;
+            while (*p != '/' && p > path)
+            {
+                p--;
+            }
+            if (*p == '/')
+                *(p+1) = 0;
+        }
+
+    }
+    return path;
 }
 void run_as_daemon(void (*handler)(int))
 {
     pid_t pid;
-    
+
     dup2(STDERR_FILENO, STDOUT_FILENO);
     if ((pid = fork()) < 0)
     {
@@ -144,16 +153,16 @@ void run_as_daemon(void (*handler)(int))
         //exit parent process.
         exit(0);
     }
-    
+
     // obtain a new process group 
     setsid();
-     
+
     // set up the signal handlers
     signal(SIGINT, handler);
     signal(SIGHUP, handler);
     signal(SIGKILL, handler);
     signal(SIGTERM, handler);
-   
+
     // ignore child
     signal(SIGCHLD, SIG_IGN);
 
@@ -161,7 +170,7 @@ void run_as_daemon(void (*handler)(int))
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTOU, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
-   
+
 }
 int set_nonblock(int fd)
 {
@@ -171,7 +180,7 @@ int set_nonblock(int fd)
         return fg;
     }
     return fcntl(fd, F_SETFL, fg|O_NONBLOCK);
-    
+
 }
 int tcp_read(int fd, void * buf, int len)
 {
@@ -207,18 +216,18 @@ int tcp_write(int fd, void * buf, int len)
         }
         if (ret < 0 && errno == EAGAIN)
         {
-             LOGW("write EAGAIN\n");
+            LOGW("write EAGAIN\n");
             //usleep(1);
         }
         if (ret < len-wlen)
         {
-                LOGW("write EAGAIN...\n");
+            LOGW("write EAGAIN...\n");
         }
         if (ret > 0)
         {
-           wlen += ret;
+            wlen += ret;
         }
-        
+
     }
     return wlen;
 }
@@ -351,7 +360,7 @@ void md5_calc(unsigned char * out, unsigned char * in, unsigned int len)
     MD5_Update(&c, in, len);
     MD5_Final(out, &c);
 }
- std::string & gb23122utf8(std::string & dst, const char * src)
+std::string & gb23122utf8(std::string & dst, const char * src)
 {
     iconv_t icpt;
 

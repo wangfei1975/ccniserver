@@ -91,10 +91,19 @@ public:
                 _pipfd[0]=_pipfd[1] = _epfd = -1;
             }
         }
-        void assign(CClientTask * usr, int isread)
+        bool assign(CClientTask * usr, int isread)
         {
-            write(_pipfd[1], &usr, sizeof(usr));
-            write(_pipfd[1], &isread, sizeof(isread));
+            if (write(_pipfd[1], &usr, sizeof(usr)) < 0)
+            {
+                LOGE("write pipe error.\n");
+                return false;
+            }
+            if (write(_pipfd[1], &isread, sizeof(isread)) < 0)
+            {
+                LOGE("write pipe 1 error.\n");
+                return false;
+            }
+            return true;
         }
         virtual void doWork();
 private:
@@ -119,6 +128,7 @@ private:
             CClientPtr cli = wcli->lock();
             if (cli == NULL)
             {
+                LOGW("weakptr: strong ref freed");
                 return false;
             }
             if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->tcpfd(), &ev) < 0)
@@ -145,6 +155,7 @@ private:
             CClientPtr cli = wcli->lock();
             if (cli == NULL)
             {
+                LOGW("weakptr: strong ref freed"); 
                return ;
             }
             if (epoll_ctl(_epfd, EPOLL_CTL_DEL, cli->tcpfd(), &ev) < 0)
