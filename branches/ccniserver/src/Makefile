@@ -49,7 +49,7 @@ ifeq ($(DEBUG), true)
     endif
 else
     ifndef ($(LOG_LEVEL))
-        LOG_LEVEL = 1
+        LOG_LEVEL = 2 
     endif
 endif
 
