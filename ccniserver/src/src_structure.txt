@@ -1,8 +1,0 @@
- inc         header files
- ccni        source file of ccni protocol,include parser and packer
- dbi         database interface
- utils       utilitys,include log system and some wrappers of system-call.
- framework   server framework
- sclient     a sample client to test server
-
-
