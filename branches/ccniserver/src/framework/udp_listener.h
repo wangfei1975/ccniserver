@@ -33,26 +33,26 @@
 #include "threads_pool.h"
 #include "seckey_map.h"
 class CUdpSockData
-    {
+{
 public:
-        int fd;
-        CMutex lk;
+    int fd;
+    CMutex lk;
 
-        bool sendto(const void * buf, size_t len, const struct sockaddr_in * addr, socklen_t addrlen)
+    bool sendto(const void * buf, size_t len, const struct sockaddr_in * addr, socklen_t addrlen)
+    {
+        CAutoMutex dumy(lk);
+
+        if (::sendto(fd, buf, len, 0, (struct sockaddr *)addr, addrlen) < 0)
         {
-            CAutoMutex dumy(lk);
-
-            if (::sendto(fd, buf, len, 0, (struct sockaddr *)addr, addrlen) < 0)
-            {
-                return false;
-            }
-            return true;
+            return false;
         }
-    };
+        return true;
+    }
+};
 class CUdpListener : public CThread
 {
 public:
-    
+
 private:
     friend class CUdpJob;
     //we may have multiple udp listen sockets on different interfaces or ports.
@@ -63,12 +63,10 @@ private:
     const CConfig & _cfg;
     CSecKeyMap & _smap;
     CThreadsPool & _pool;
-
-    CMutex _seedlk;
-    uint64_t _keyseed;
+ 
 public:
     CUdpListener(const CConfig &cfg, CSecKeyMap & smap, CThreadsPool & pool) :
-        _epfd(-1), _cfg(cfg), _smap(smap), _pool(pool),_keyseed(0)
+        _epfd(-1), _cfg(cfg), _smap(smap), _pool(pool)
     {
     }
 
@@ -78,11 +76,7 @@ public:
     }
 
 public:
-    uint64_t getKey() 
-    {
-        CAutoMutex(_seedlk);
-        return _keyseed++;
-    }
+    
     bool create();
     void destroy();
     virtual void doWork();
@@ -98,9 +92,10 @@ private:
         CUdpSockData * _sock;
         CCNI_HEADER _hd;
         struct sockaddr_in _addr;
-        
+
 public:
-        CUdpJob(CUdpSockData * sk, const CCNI_HEADER & hd, const struct sockaddr_in & addr, void * arg) :
+        CUdpJob(CUdpSockData * sk, const CCNI_HEADER & hd, const struct sockaddr_in & addr,
+                void * arg) :
             CJob(arg), _sock(sk), _hd(hd), _addr(addr)
         {
         }

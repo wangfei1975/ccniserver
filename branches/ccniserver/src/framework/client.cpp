@@ -63,7 +63,7 @@ bool CClient::doread()
         return false;
     }
     uint32_t c = CEngine::instance().counter().incMsgCnt();
-    if ((c %1000) == 0)
+    if ((c %5000) == 0)
     {
         LOGW("total message count:%d\n", c);
     }
