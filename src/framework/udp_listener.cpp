@@ -22,6 +22,7 @@
 /***************************************************************************************/
 #include "udp_listener.h"
 #include "utils.h"
+#include "engine.h"
 
 bool CUdpListener::create()
 {
@@ -124,12 +125,13 @@ void CUdpListener::_doread(CUdpSockData * sk)
     struct sockaddr_in addr;
     socklen_t flen = (socklen_t)sizeof(struct sockaddr);
     ssize_t len;
-    if ((len = recvfrom(sk->fd, &hd, sizeof(CCNI_HEADER), 0, (struct sockaddr *)&(addr), &flen))!= sizeof(hd))
+    if ((len = recvfrom(sk->fd, &hd, sizeof(CCNI_HEADER), 0, (struct sockaddr *)&(addr), &flen))
+            != sizeof(hd))
     {
         LOGW("receive ccni header error, discard!\n");
         return;
     }
-   
+
     if (!hd.verify())
     {
         LOGW("not valid ccni connect req header, discard.\n");
@@ -148,21 +150,15 @@ bool CUdpListener::CUdpJob::run()
     DUMPBIN(&_hd, sizeof(_hd));
 
     const char * sec = ((CUdpListener *)_arg)->_cfg.secret.c_str();
-    uint64_t ukey = ((CUdpListener *)_arg)->getKey();
-    int seclen = strlen(sec);
-    unsigned char buf[512];
-    memcpy(buf, &_addr, sizeof(_addr));
-    memcpy(buf + sizeof(_addr), sec, seclen);
-
     //generate secret key.
-    md5_calc((uint8_t *)&(_hd.secret1), buf, sizeof(_addr)+seclen);
+    CSecKeyMap::genSecret((uint8_t *)&(_hd.secret1), _addr, sec);
     LOGD("secret1:%x\n", _hd.secret1);
 
     CSecKeyMap & map(((CUdpListener *)_arg)->_smap);
 
     if (!map.insert(_hd.secret1, _hd.secret2, _sock, _addr))
     {
-        LOGW("pair {secret key, addr} alread in map.\n");
+        LOGW("pair {secret key, addr} already in map.\n");
         delete this;
         return false;
     }
@@ -173,13 +169,13 @@ bool CUdpListener::CUdpJob::run()
     if (!_sock->sendto(&_hd, sizeof(_hd), &_addr, sizeof(_addr)))
     {
         LOGW("send connect response error: %s\n", strerror(errno));
-        map.remove(_hd.secret1);
+        map.remove(_hd.secret1, _hd.secret2);
         delete this;
         return false;
-
     }
-    static int udpacct = 0;
-    LOGW("udp send back count %d\n", ++udpacct);
+    
+    uint32_t udpcnt = CEngine::instance().counter().incUdpCount();
+    LOGW("udp send back count %d\n", udpcnt);
     delete this;
     return true;
 }

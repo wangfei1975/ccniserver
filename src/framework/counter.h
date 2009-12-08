@@ -28,35 +28,44 @@ class CCounter
 {
 private:
     volatile uint32_t _msgcnt;
-    CMutex            _msglk;
-    
+
     volatile uint32_t _logincnt;
-    CMutex            _loglk;
-    
+
+    volatile uint32_t _udpacccnt;
+
 public:
-    CCounter():_msgcnt(0),_logincnt(0)
+    CCounter() :
+        _msgcnt(0), _logincnt(0), _udpacccnt(0)
     {
-        
+
     }
+    uint32_t udpCount()
+    {
+        return _udpacccnt;
+    }
+
     uint32_t msgCount()
     {
-        CAutoMutex du(_msglk);
         return _msgcnt;
     }
     uint32_t loginCount()
     {
-        CAutoMutex du(_loglk);
         return _logincnt;
     }
     uint32_t incMsgCnt()
     {
-        CAutoMutex du(_msglk);
-        return ++_msgcnt;
+        __gnu_cxx::__atomic_add_dispatch((_Atomic_word*)&_msgcnt, 1);
+        return _msgcnt;
     }
     uint32_t incLoginCnt()
     {
-        CAutoMutex du(_loglk);
-        return ++_logincnt;
+        __gnu_cxx::__atomic_add_dispatch((_Atomic_word*)&_logincnt, 1);
+        return _logincnt;
+    }
+    uint32_t incUdpCount()
+    {
+        __gnu_cxx::__atomic_add_dispatch((_Atomic_word*)&_udpacccnt, 1);
+        return _udpacccnt;
     }
 };
 #endif /*COUNTER_H_*/
