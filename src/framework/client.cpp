@@ -27,27 +27,17 @@
 
 bool CClient::doread()
 {
-
     CCNIMsgParser::state_t st = _curmsg.read(_tcpfd);
     LOGV("read state: %d\n", st);
     if (st == CCNIMsgParser::st_rderror)
     {
-
         LOGW("remote disconnected. %s\n", inet_ntoa(_udpaddr.sin_addr));
-        LOGW("msg count %d times.\n", CEngine::instance().counter().msgCount());
-        LOGW("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
-
-        //tbd: broad cast user NotifyUserLogoff...
-
         return false;
     }
 
     if (st == CCNIMsgParser::st_hderror)
     {
         LOGW("read a invalid ccni header from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
-
-        //  LOGW("read error cnt:%d\n", ++errcnt);
-
         return false;
     }
     if (st == CCNIMsgParser::st_rdbd || CCNIMsgParser::st_rdhd)
@@ -56,7 +46,6 @@ bool CClient::doread()
         return true;
     }
 
-    // if (st == CCNIMsgParser::st_bdok) //got a complete message
     if (!_curmsg.parse())
     {
         LOGW("read a invalid ccni msg from %s,force close it.\n", inet_ntoa(_udpaddr.sin_addr));
@@ -81,18 +70,10 @@ bool CClient::doread()
 
 bool CClient::dosend()
 {
-    /*
-     _resmsg.block_send(_tcpfd);
-     _resmsg.free();
-     _curmsg.free();
-     _pstate = st_reading;
-     return true;
-     */
     CCNIMsgPacker::state_t st = _resmsg.send(_tcpfd);
     if (st == CCNIMsgPacker::st_sderror)
     {
         LOGW("send error.\n");
-
         return false;
     }
     if (st == CCNIMsgPacker::st_sdok)
@@ -108,12 +89,6 @@ bool CClient::dosend()
 }
 bool CClient::run()
 {
-    //static volatile int cnt = 0;
-
-    //if (++cnt == 1)
-    {
-        // LOGV("user job run %d times.\n", ++cnt);
-    }
     bool ret;
     if (_pstate == st_reading)
     {
@@ -128,19 +103,22 @@ bool CClient::run()
         LOGV("_psate = %s\n", _pstate == st_reading ? "reading":"sending");
         // LOGV("re assign ok.\n");
     }
-    else
-    {
-        _resmsg.free();
-        _curmsg.free();
-        close(_tcpfd);
-    }
+    
     return ret;
 }
+
+
+//
+// wo don't consider of multiple process of CClient::run() 
+// since each time we just read one ccni message from client.
+// after this message has been processed, then read next.
+//
 bool CClientTask::run()
 {
     CClientPtr c = _cli.lock();
     if (c == NULL)
     {
+        delete this;
         return false;
     }
 
@@ -148,13 +126,17 @@ bool CClientTask::run()
     {
         int s = (c->pstate() == CClient::st_reading) ? 1 : 0;
         CEngine::instance().usrListener().assign(this, s);
-        LOGI("run ok.\n")
+        LOGV("run ok.\n")
         return true;
     }
     else
     {
+       
+        //tbd: broad cast user NotifyUserLogoff...
         CEngine::instance().dataMgr().delClient(c->uname());
         LOGI("client cnt %d\n",  CEngine::instance().dataMgr().userCount());
+        LOGI("msg count %d times.\n", CEngine::instance().counter().msgCount());
+        LOGI("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
         delete this;
         return false;
     }

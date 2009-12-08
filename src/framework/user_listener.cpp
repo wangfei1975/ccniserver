@@ -65,7 +65,7 @@ void CUserListener::CListenThread::doWork()
                 {
                     LOGE("read pipe 1 error.\n");
                 }
-                 LOGI("add user %d\n", isread);
+                 LOGV("add user %d\n", isread);
                 _epollAdd(cli, isread);
             }
             else

@@ -94,7 +94,9 @@ public:
     }
     virtual ~CClient()
     {
+        close(_tcpfd);
         _curmsg.free();
+        _resmsg.free();
     }
 
 public:
