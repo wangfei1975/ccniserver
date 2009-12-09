@@ -33,19 +33,21 @@
 #define xmlTagLogin                     "Login"
 #define xmlTagLoginRes                  "LoginRes"
 
-#define xmlTagEnterRoom                 "EnterRoom"
-#define xmlTagEnterRoomRes              "EnterRoomRes"
-
-
 #define xmlTagLogout                    "Logout"
 #define xmlTagLogoutRes                 "LogoutRes"
 
-#define xmlTagNotifyLogin               "NotifyLogin"
-#define xmlTagNotifyLogout              "NotifyLogout"
+#define xmlTagEnterRoom                 "EnterRoom"
+#define xmlTagEnterRoomRes              "EnterRoomRes"
+#define xmlTagBroadcastEnterRoom        "BroadcastEnterRoom"
+
+#define xmlTagLeaveRoom                 "LeaveRoom"
+#define xmlTagLeaveRoomRes              "LeaveRoomRes"
+#define xmlTagBroadcastLeaveRoom        "BroadcastLeaveRoom"
+
 
 #define xmlTagNewSession                "NewSession"
 #define xmlTagNewSessionRes             "NewSessionRes"
-#define xmlTagNotifyNewSession          "NotifyNewSession"
+#define xmlTagBroadcastNewSession       "BroadcastNewSession"
 
 #define xmlTagEnterSession              "EnterSession"
 #define xmlTagEnterSessionRes           "EnterSessionRes"
@@ -61,8 +63,8 @@
 #define xmlTagMove                      "Move"
 #define xmlTagNotifyMove                "NotifyMove"
 
-#define xmlTagRequestDraw               "RequestDraw"
-#define xmlTagNotifyRequestDraw         "NotifyRequestDraw"
+#define xmlTagDraw                      "Draw"
+#define xmlTagNotifyDraw                "NotifyDraw"
 #define xmlTagAgreedDraw                "AgreedDraw"
 
 #define xmlTagGiveUp                    "GiveUp"
@@ -75,8 +77,8 @@
 #define xmlTagNotifyEndSession          "NotifyEndSession"
 #define xmlTagNotifyBreakLine           "NotifyBreakLine"
 
-#define xmlTagListUsers                 "ListUsers"
-#define xmlTagListUsersRes              "ListUsersRes"
+#define xmlTagListRooms                 "ListRooms"
+#define xmlTagListRoomsRes              "ListRoomsRes"
 
 #define xmlTagListSessions              "ListSessions"
 #define xmlTagListSessionsRes           "ListSessionsRes"

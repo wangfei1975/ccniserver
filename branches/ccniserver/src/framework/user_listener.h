@@ -53,14 +53,14 @@ private:
     class CListenThread : public CThread
     {
 private:
-        int _pipfd[2];
+       // int _pipfd[2];
         int _epfd;
 
 public:
         CListenThread() :
             _epfd(-1)
         {
-            _pipfd[0] = _pipfd[1] = -1;
+           // _pipfd[0] = _pipfd[1] = -1;
         }
         ~CListenThread()
         {
@@ -68,18 +68,19 @@ public:
         }
         bool create()
         {
+            /*
             if (pipe(_pipfd) < 0)
             {
                 LOGE("create pipe error:%s.\n", strerror(errno));
                 return false;
             }
-
+            */ 
             if ((_epfd = epoll_create(10)) < 0)
             {
                 LOGE("create epoll fd error: %s\n", strerror(errno));
                 return false;
             }
-
+            /*
             struct epoll_event ev;
             ev.events = EPOLLIN | EPOLLPRI;
             ev.data.ptr = NULL;
@@ -89,7 +90,7 @@ public:
                 LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
                 return false;
             }
-
+            */
             if (!CThread::create())
             {
                 return false;
@@ -102,13 +103,16 @@ public:
             if (_epfd != -1)
             {
                 close(_epfd);
-                close(_pipfd[0]);
-                close(_pipfd[1]);
-                _pipfd[0]=_pipfd[1] = _epfd = -1;
+                _epfd = -1;
+               // close(_pipfd[0]);
+               // close(_pipfd[1]);
+               // _pipfd[0]=_pipfd[1] = -1;
+                
             }
         }
         bool assign(CClientTask * usr, int isread)
         {
+            /*
             if (write(_pipfd[1], &usr, sizeof(usr)) < 0)
             {
                 LOGE("write pipe error.\n");
@@ -118,8 +122,8 @@ public:
             {
                 LOGE("write pipe 1 error.\n");
                 return false;
-            }
-            return true;
+            }*/
+            return _epollAdd(usr, isread);
         }
         virtual void doWork();
 private:
