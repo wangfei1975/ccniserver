@@ -103,7 +103,7 @@ int CClient::doCCNI(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
     svrinfo.addParameter(xmlTagServerType, "CCNIServer");
     svrinfo.addParameter(xmlTagServerVersion, "1.0");
     svrinfo.addParameter(xmlTagCCNIVersion, "1.0");
-    svrinfo.addParameter(xmlTagDescription, "CCNI Chinese Chess Netword server 1.0 for Linux");
+    svrinfo.addParameter(xmlTagDescription, "CCNI Chinese Chess server 1.0 for Linux");
     lgmsg.addChild(svrinfo);
     res.appendmsg(lgmsg);
     // LOGV("out\n");
