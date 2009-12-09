@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -41,14 +41,26 @@
 #include "engine.h"
 #include "broadcaster.h"
 
+#define IMPL_MSG_HANDLE(name) int CClient::name(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd)
+
 CClient::hndtable_t CClient::msghnds[] =
 {
 { xmlTagCCNI, &CClient::doCCNI },
 { xmlTagMyState, &CClient::doMyState },
 { xmlTagLogout, &CClient::doLogout },
-{ xmlTagEnterRoom, &CClient::doEnterRoom},
-{ NULL, &CClient::doUnknow } 
-};
+{ xmlTagEnterRoom, &CClient::doEnterRoom },
+{ xmlTagLeaveRoom, &CClient::doLeaveRoom },
+{ xmlTagNewSession, &CClient::doNewSession },
+{ xmlTagEnterSession, &CClient::doEnterSession },
+{ xmlTagWatchSession, &CClient::doWatchSession },
+{ xmlTagReady, &CClient::doReady },
+{ xmlTagMove, &CClient::doMove },
+{ xmlTagDraw, &CClient::doDraw },
+{ xmlTagGiveUp, &CClient::doGiveUp },
+{ xmlTagListRooms, &CClient::doListRooms },
+{ xmlTagListSessions, &CClient::doListSessions },
+{ xmlTagSendMessage, &CClient::doSendMessages },
+{ NULL, &CClient::doUnknow } };
 
 void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CBroadCaster & bd)
 {
@@ -81,21 +93,84 @@ void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CBroadCaster &
     }
 
 }
-int CClient::doEnterRoom(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
+
+/*
+ * 
+ *   Message handles
+ * 
+ * 
+ * */
+
+IMPL_MSG_HANDLE(doEnterRoom)
 {
     return 0;
 }
-int CClient::doUnknow(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
+
+IMPL_MSG_HANDLE(doLeaveRoom)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doNewSession)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doEnterSession)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doWatchSession)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doReady)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doMove)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doDraw)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doGiveUp)
+{
+    return 0;
+}
+IMPL_MSG_HANDLE(doListRooms)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doListSessions)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doSendMessages)
+{
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doUnknow)
 {
     CXmlMsg lgmsg;
     lgmsg.create(xmlTagUnknowMessage);
     res.appendmsg(lgmsg);
     return 0;
 }
-int CClient::doCCNI(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
+
+IMPL_MSG_HANDLE(doCCNI)
 {
     // LOGV("enter\n");
-
     CXmlMsg lgmsg, svrinfo;
     lgmsg.create(xmlTagCCNIRes);
     svrinfo.create(xmlTagSeriverInformation);
@@ -109,7 +184,7 @@ int CClient::doCCNI(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
     // LOGV("out\n");
     return 0;
 }
-int CClient::doMyState(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
+IMPL_MSG_HANDLE(doMyState)
 {
     CXmlMsg lgmsg;
     lgmsg.create(xmlTagMyStateRes);
@@ -117,7 +192,11 @@ int CClient::doMyState(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
     res.appendmsg(lgmsg);
     return 0;
 }
-int CClient::doLogout(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd)
+IMPL_MSG_HANDLE(doLogout)
 {
+    CXmlMsg lgmsg;
+    lgmsg.create(xmlTagLogoutRes);
+    lgmsg.addParameter(xmlTagReturnCode, 0);
+    res.appendmsg(lgmsg);
     return 0;
 }

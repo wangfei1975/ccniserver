@@ -48,11 +48,25 @@ struct hndtable_t
 static hndtable_t msghnds[];
 
 void procMsgs(CCNIMsgParser & msg, CCNIMsgPacker & res, CBroadCaster & bd);
-int  doCCNI(CXmlNode msg, CCNIMsgPacker & res, CBroadCaster & bd);
-int  doMyState(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd);
-int  doLogout(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd);
-int  doUnknow(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd);
-int  doEnterRoom(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd);
+
+#define DECLARE_MSG_HANDLE(hname) int hname(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd)
+
+DECLARE_MSG_HANDLE(doCCNI);
+DECLARE_MSG_HANDLE(doMyState);
+DECLARE_MSG_HANDLE(doLogout);
+DECLARE_MSG_HANDLE(doUnknow);
+DECLARE_MSG_HANDLE(doEnterRoom);
+DECLARE_MSG_HANDLE(doLeaveRoom);
+DECLARE_MSG_HANDLE(doNewSession);
+DECLARE_MSG_HANDLE(doEnterSession);
+DECLARE_MSG_HANDLE(doWatchSession);
+DECLARE_MSG_HANDLE(doReady);
+DECLARE_MSG_HANDLE(doMove);
+DECLARE_MSG_HANDLE(doDraw);
+DECLARE_MSG_HANDLE(doGiveUp);
+DECLARE_MSG_HANDLE(doListRooms);
+DECLARE_MSG_HANDLE(doListSessions);
+DECLARE_MSG_HANDLE(doSendMessages);
 
 
 #endif /*CCNI_MSGHNDS_H_*/
