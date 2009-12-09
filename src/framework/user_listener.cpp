@@ -71,9 +71,11 @@ void CUserListener::CListenThread::doWork()
             {
                 LOGW("epoll rd hup. %d\n", ++hupcnt);
             }
+           
             if (events[i].data.ptr == NULL)
             {
-               
+                LOGW("error. epoll data ptr = NULL\n");
+               /*
                 CClientTask * cli;
                 int isread;
                 if (read(_pipfd[0], &cli, sizeof(cli)) < 0)
@@ -86,6 +88,7 @@ void CUserListener::CListenThread::doWork()
                 }
                  LOGV("add user %d\n", isread);
                 _epollAdd(cli, isread);
+                */
             }
             else
             {
