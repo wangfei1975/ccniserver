@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -59,6 +59,7 @@ bool CClient::doread()
     if (st == CCNIMsgParser::st_rdbd || CCNIMsgParser::st_rdhd)
     {
         //just waiting for next read.
+        _pstate = st_reading;
         return true;
     }
 
@@ -79,13 +80,13 @@ bool CClient::doread()
     bd.create();
     procMsgs(_curmsg, _resmsg, bd);
 
-    _pstate = st_sending;
     bd.destroy();
     return dosend();
 }
 
 bool CClient::dosend()
 {
+    _pstate = st_sending;
     CCNIMsgPacker::state_t st = _resmsg.send(_tcpfd);
     if (st == CCNIMsgPacker::st_sderror)
     {
@@ -95,67 +96,96 @@ bool CClient::dosend()
     if (st == CCNIMsgPacker::st_sdok)
     {
         LOGV("send ok.\n");
-        _pstate = st_reading;
         _resmsg.free();
         _curmsg.free();
-        return true;
+        return donotify();
     }
     LOGW("send eagain.\n");
     return true;
 }
-bool CClient::run()
+bool CClient::donotify()
 {
-    bool ret;
-    if (_pstate == st_reading)
+    if (_notimsgs.empty())
     {
-        ret = doread();
+        LOGV("empty notify message queue.");
+        _pstate = st_idle;
+        //
+        //we don't return false,since we want next reading.
+        //
+        return true;
     }
-    else
+    _pstate = st_notifing;
+    CCNINotification * inmsg = *_notimsgs.begin();
+    int st = inmsg->send(_tcpfd);
+    if (st < 0)
     {
+        LOGW("notification send error.\n");
+        return false;
+    }
+    if (st == 0)
+    {
+        _notimsgs.erase(_notimsgs.begin());
+        delete inmsg;
+        if (_notimsgs.empty())
+        {
+            _pstate = st_idle;
+        }
+        // else send next notification.
+        return true;
+    }
+    //send notify eagain.
+    return true;
+}
+bool CClient::doIncomingMsg()
+{
+    bool ret = false;
+    CAutoMutex du(_lk);
+    switch (_pstate)
+    {
+    case st_idle:
+    case st_reading:
+        ret = doread();
+        break;
+    case st_sending:
         ret = dosend();
+        break;
+    case st_notifing:
+        ret = donotify();
+        break;
+    default:LOGW("this is impossibile. : )\n")
+        ;
+        break;
     }
     if (ret)
     {
-        LOGV("_psate = %s\n", _pstate == st_reading ? "reading":"sending");
-        // LOGV("re assign ok.\n");
-    }
-    
-    return ret;
-}
-
-
-//
-// wo don't consider of multiple process of CClient::run() 
-// since each time we just read one ccni message from client.
-// after this message has been processed, then read next.
-//
-bool CClientTask::run()
-{
-    CClientPtr c = _cli.lock();
-    if (c == NULL)
-    {
-        delete this;
-        return false;
-    }
-
-    if (c->run())
-    {
-        int s = (c->pstate() == CClient::st_reading) ? 1 : 0;
-        CEngine::instance().usrListener().assign(this, s);
-        LOGV("run ok.\n")
-        return true;
+        CEngine::instance().usrListener().assign(_ctsk);
     }
     else
     {
-       
         //tbd: broad cast user NotifyUserLogoff...
-        CEngine::instance().dataMgr().delClient(c->uname());
-        LOGI("client cnt %d\n",  CEngine::instance().dataMgr().userCount());
+        CEngine::instance().dataMgr().delClient(uname());
+        LOGI("client cnt %d\n", CEngine::instance().dataMgr().userCount());
         LOGI("msg count %d times.\n", CEngine::instance().counter().msgCount());
         LOGI("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
-        delete this;
-        return false;
+        delete _ctsk;
     }
-
-    return false;
+    LOGV("_psate = %s\n", strpstate());
+    return ret;
 }
+
+bool CClient::queueNotification(CNotifyMsgBufPtr msg)
+{
+    CAutoMutex du(_lk);
+
+    _notimsgs.push_back(new CCNINotification(msg));
+    //if we are in epoll waiting list, then remove it and then post a send request 
+    if (_pstate == st_idle)
+    {
+        _pstate = st_notifing;
+        rmFromEpoll();
+        //post a new task.
+        CEngine::instance().usrListener().assign(_ctsk);
+    }
+    return true;
+}
+

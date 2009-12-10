@@ -38,6 +38,20 @@
 /***************************************************************************************/
 #include "ccni_msg.h"
 #include "utils.h"
+
+CNotifyMsgBufPtr CCNIMsgPacker::packNotification()
+{
+    if (_data == NULL)
+    {
+        pack(0,0,0,0);
+    }
+    int len = _hd.datalen + sizeof(_hd);
+    uint8_t * data = new uint8_t[len];
+    memcpy(data, &_hd, sizeof(_hd));
+    memcpy(data + sizeof(_hd), _data, _hd.datalen);
+    CNotifyMsgBufPtr msg(new CNotifyMsgBuf(data, len));
+    return msg;
+}
 int CCNIMsgPacker::block_send(int sock)
 {
     uint8_t * buf = (uint8_t *)&_hd;

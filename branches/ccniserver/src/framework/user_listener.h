@@ -110,85 +110,20 @@ public:
                 
             }
         }
-        bool assign(CClientTask * usr, int isread)
+        bool assign(CClientTask * ctsk)
         {
-            /*
-            if (write(_pipfd[1], &usr, sizeof(usr)) < 0)
-            {
-                LOGE("write pipe error.\n");
-                return false;
-            }
-            if (write(_pipfd[1], &isread, sizeof(isread)) < 0)
-            {
-                LOGE("write pipe 1 error.\n");
-                return false;
-            }*/
-            return _epollAdd(usr, isread);
+            CClientPtr cli = ctsk->client();
+            return cli->addToEpoll(_epfd);
         }
         virtual void doWork();
 private:
-        bool _epollAdd(CClientTask * wcli, int isread)
-        {
-            struct epoll_event ev;
-
-            /*
-             * we use oneshot flag for epoll for client socket.
-             * 
-             * this will ensure 
-             * */
-            if (isread == 1)
-            {
-               ev.events = EPOLLIN | EPOLLPRI ;// | EPOLLET;
-            }
-            else
-            {
-               ev.events = EPOLLOUT;
-            }
-            ev.data.ptr = wcli;
-            CClientPtr cli = wcli->lock();
-            if (cli == NULL)
-            {
-                LOGW("weakptr: strong ref freed");
-                return false;
-            }
-            if (epoll_ctl(_epfd, EPOLL_CTL_ADD, cli->tcpfd(), &ev) < 0)
-            {
-
-                LOGE("epoll ctrl add fd error: %s\n", strerror(errno));
-                return false;
-            }
-
-            //            else
-            //            {
-            //                if (epoll_ctl(_epfd, EPOLL_CTL_MOD, cli->tcpfd(), &ev) < 0)
-            //                {
-            //                    LOGE("epoll ctrl modify fd error: %d %d %s\n", cli->tcpfd(), errno, strerror(errno));
-            //                    return false;
-            //                }
-            //            }
-            return true;
-
-        }
-        void _epollDel(CClientTask * wcli)
-        {
-            struct epoll_event ev;
-            CClientPtr cli = wcli->lock();
-            if (cli == NULL)
-            {
-                LOGW("weakptr: strong ref freed"); 
-               return ;
-            }
-            if (epoll_ctl(_epfd, EPOLL_CTL_DEL, cli->tcpfd(), &ev) < 0)
-            {
-                LOGE("epoll ctrl del fd error: %s\n", strerror(errno));
-            }
-        }
+       
     };
 private:
     list <CListenThread *> _ths;
     CMutex _lk;
 public:
-    void assign(CClientTask * usr, int isread=1)
+    void assign(CClientTask * usr)
     {
       
         CAutoMutex dumy(_lk);
@@ -196,7 +131,7 @@ public:
         list <CListenThread *>::iterator it;
       
         it = _ths.begin();
-        (*it)->assign(usr, isread);
+        (*it)->assign(usr);
         CListenThread * th = *it;
         _ths.erase(it);
         _ths.push_back(th);
