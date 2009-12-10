@@ -274,9 +274,7 @@ bool CTcpListener::CTcpJob::doLogin(CUdpSockData * udp, const struct sockaddr_in
         LOGE("add client error!\n");
         return false;
     }
-    CClientWeakPtr wcli(cli);
-    CClientTask * ctsk = new CClientTask(wcli);
-    CEngine::instance().usrListener().assign(ctsk);
+    CEngine::instance().usrListener().assign(new CClientTask(cli));
     CEngine::instance().counter().incLoginCnt();
     LOGI("loging succ count:%d\n",  CEngine::instance().counter().loginCount());
     LOGI("client cnt %d\n",  CEngine::instance().dataMgr().userCount());

@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -59,11 +59,11 @@
 
 class CUdpSockData;
 class CBroadCaster;
+class CClientTask;
 class CClient;
 typedef std::tr1::shared_ptr<CClient> CClientPtr;
-typedef std::tr1::weak_ptr<CClient> CClientWeakPtr;
 
-class CClient : public CJob
+class CClient
 {
 public:
     enum state_t
@@ -79,8 +79,10 @@ public:
     };
     enum proc_state_t
     {
+        st_idle,
         st_reading,
         st_sending,
+        st_notifing,
     };
 private:
 
@@ -95,16 +97,19 @@ private:
     proc_state_t _pstate;
     CCNIMsgParser _curmsg;
     CCNIMsgPacker _resmsg;
-
+    list<CCNINotification *> _notimsgs;
+private:
+    CClientTask * _ctsk;
+    int _epfd;
 private:
     bool doread();
     bool dosend();
-
+    bool donotify();
 public:
     CClient(int tcpfd, CUdpSockData * udp, const secret_key_t & k1, const secret_key_t & k2,
             const struct sockaddr_in & udpaddr, const CDataBase::CRecord & usr) :
         _state(Online), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr),
-                _usrinfo(usr), _pstate(st_reading)
+                _usrinfo(usr), _pstate(st_idle), _ctsk(NULL), _epfd(-1)
     {
 
     }
@@ -113,9 +118,55 @@ public:
         close(_tcpfd);
         _curmsg.free();
         _resmsg.free();
+        LOGI("client %s destroyed\n", uname());
     }
 
 public:
+    int epfd()
+    {
+        return _epfd;
+    }
+
+    bool addToEpoll(int epfd)
+    {
+        struct epoll_event ev;
+        ev.events = epollflag();// | EPOLLET;
+        ev.data.ptr = _ctsk;
+        if (epoll_ctl(epfd, EPOLL_CTL_ADD, _tcpfd, &ev) < 0)
+        {
+
+            LOGW("epoll ctrl add fd error: %s\n", strerror(errno));
+            return false;
+        }
+        _epfd = epfd;
+        return true;
+    }
+    bool rmFromEpoll()
+    {
+        struct epoll_event ev;
+        if (epoll_ctl(_epfd, EPOLL_CTL_DEL, _tcpfd, &ev) < 0)
+        {
+            LOGW("epoll ctrl del fd error: %s\n", strerror(errno));
+            return false;
+        }
+        _epfd = -1;
+        return true;
+    }
+    void setClientTask(CClientTask * t)
+    {
+        _ctsk = t;
+    }
+    uint32_t epollflag()
+    {
+        if (_pstate == st_idle || _pstate == st_reading)
+        {
+            return EPOLLIN | EPOLLPRI;
+        }
+        else
+        {
+            return EPOLLOUT;
+        }
+    }
     proc_state_t pstate()
     {
         return _pstate;
@@ -135,6 +186,12 @@ public:
     struct sockaddr_in & udpaddr()
     {
         return _udpaddr;
+    }
+    const char * strpstate()
+    {
+        const char * spstate[] =
+        { "idle", "reading", "sending", "notifing" };
+        return spstate[_pstate];
     }
     const char * strstate()
     {
@@ -164,25 +221,43 @@ public:
 
 public:
 #include "ccni_msghnds.h"
+private:
+    // 
+    // for sync doincoming  message and send notification.
+    CMutex _lk;
 public:
-    virtual bool run();
-
+    bool doIncomingMsg();
+    bool queueNotification(CNotifyMsgBufPtr msg);
 };
 class CClientTask : public CJob
 {
 private:
-    CClientWeakPtr _cli;
+    CClientPtr _cli;
+
 public:
-    CClientPtr lock()
+    ~CClientTask()
     {
-        return _cli.lock();
+        LOGI("client task %s destroyed.\n", _cli->uname());
     }
-    CClientTask(CClientWeakPtr cli) :
+    CClientTask(CClientPtr cli) :
         _cli(cli)
     {
-
+        cli->setClientTask(this);
     }
-    virtual bool run();
+    //
+    // wo don't consider of multiple process of CClient::run() 
+    // since each time we just read one ccni message from client.
+    // after this message has been processed, then read next.
+    //
+    virtual bool run()
+    {
+        return _cli->doIncomingMsg();
+    }
+    CClientPtr client()
+    {
+        return _cli;
+    }
+
 };
 
 #endif /*CLINET_H_*/

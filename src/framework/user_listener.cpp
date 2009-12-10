@@ -43,13 +43,13 @@ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 #include "engine.h"
 void CUserListener::CListenThread::doWork()
 {
-    struct epoll_event events[10];
+    struct epoll_event events[20];
     int nfds;
     while (1)
     {
-        if ((nfds = epoll_wait(_epfd, events, 10, -1)) < 0)
+        if ((nfds = epoll_wait(_epfd, events, 20, -1)) < 0)
         {
-            LOGW("epoll wait error: %s\n", strerror(errno));
+            LOGE("epoll wait error: %s\n", strerror(errno));
             pthread_testcancel();
             continue;
         }
@@ -93,7 +93,7 @@ void CUserListener::CListenThread::doWork()
             else
             {
                 CClientTask * cli = (CClientTask *)events[i].data.ptr;
-                 _epollDel(cli);
+                 cli->client()->rmFromEpoll();
                  CEngine::instance().threadsPool().assign(cli);
            }
         }

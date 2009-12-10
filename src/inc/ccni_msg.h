@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -39,9 +39,11 @@
 
 #ifndef CCNI_MSG_H_
 #define CCNI_MSG_H_
+#include <tr1/memory>
 #include "ccni.h"
 #include "xml.h"
 #include "ccni_tags.h"
+
 class CXmlMsg : public CXmlNode
 {
 public:
@@ -74,6 +76,9 @@ public:
         return (xmlAddPrevSibling(desNd, dn) != NULL);
     }
 };
+
+class CNotifyMsgBuf;
+typedef std::tr1::shared_ptr<CNotifyMsgBuf> CNotifyMsgBufPtr;
 //create ccni msg and write to net.
 class CCNIMsgPacker
 {
@@ -148,6 +153,7 @@ public:
         _state = st_sdhd;
         return (_data != NULL);
     }
+    CNotifyMsgBufPtr packNotification();
 
     state_t send(int sock);
 
@@ -156,6 +162,75 @@ public:
 private:
     state_t _sendsdhd(int sock);
     state_t _sendsdbd(int sock);
+};
+
+class CNotifyMsgBuf
+{
+private:
+    uint8_t * _data;
+    int _len;
+    CNotifyMsgBuf(uint8_t * d, int l) :
+        _data(d), _len(l)
+    {
+    }
+    friend class CCNIMsgPacker;
+public:
+    uint8_t * data()
+    {
+        return _data;
+    }
+    int len()
+    {
+        return _len;
+    }
+
+    ~CNotifyMsgBuf()
+    {
+        if (_data)
+            delete []_data;
+    }
+};
+
+class CCNINotification
+{
+
+private:
+    CNotifyMsgBufPtr _msg;
+    int _pos;
+public:
+    CCNINotification(CNotifyMsgBufPtr msg) :
+        _msg(msg), _pos(0)
+    {
+    }
+    //  return -1 error
+    //          0 send ok
+    //          1 eagain
+    //
+    int send(int sock)
+    {
+        uint8_t * d = _msg->data();
+        int len = _msg->len();
+        if (d == NULL || len <= 0)
+        {
+            return 0;
+        }
+        int slen =:: send(sock, d + _pos, len -_pos, MSG_NOSIGNAL|MSG_DONTWAIT);
+        if (slen <= 0)
+        {
+            if (errno == EAGAIN)
+            {
+                LOGV("send EAGAIN\n");
+                return 1;
+            }
+            return -1;
+        }
+        _pos += slen;
+        if (_pos >= len)
+        {
+            return 0;
+        }
+        return 1;
+    }
 };
 
 //read msg from net & parse.
@@ -253,4 +328,5 @@ private:
     state_t _readRdbd(int sock);
 
 };
+
 #endif /*CCNI_MSG_H_*/
