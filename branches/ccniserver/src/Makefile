@@ -22,7 +22,7 @@
 #/***************************************************************************************/
 
 PRGNAME = ccniserver 
-MAKE    = make --no-print-directory -s
+MAKE    = make --no-print-directory -s 
 CCNI_DIR        = ./ccni
 FRAMEWORK_DIR   = ./framework
 UTILS_DIR       = ./utils
