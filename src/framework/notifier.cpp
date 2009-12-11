@@ -20,7 +20,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*             ccni_msghnds.h                                                          */
+/*             notifier.cpp                                                            */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -36,37 +36,18 @@
 /*  histroy                                                                            */
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
-#ifndef CCNI_MSGHNDS_H_
-#define CCNI_MSGHNDS_H_
 
-typedef  int (CClient::*msghnd_t)(CXmlNode msg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd);
-struct hndtable_t
+#include "client.h"
+#include "notifier.h"
+
+bool CNotifier::run()
 {
-    const char * label;
-    msghnd_t     fun;
-};
-static hndtable_t msghnds[];
-
-void procMsgs(CCNIMsgParser & msg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd);
-
-#define DECLARE_MSG_HANDLE(hname) int hname(CXmlNode  msg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd)
-
-DECLARE_MSG_HANDLE(doCCNI);
-DECLARE_MSG_HANDLE(doMyState);
-DECLARE_MSG_HANDLE(doLogout);
-DECLARE_MSG_HANDLE(doUnknow);
-DECLARE_MSG_HANDLE(doEnterRoom);
-DECLARE_MSG_HANDLE(doLeaveRoom);
-DECLARE_MSG_HANDLE(doNewSession);
-DECLARE_MSG_HANDLE(doEnterSession);
-DECLARE_MSG_HANDLE(doWatchSession);
-DECLARE_MSG_HANDLE(doReady);
-DECLARE_MSG_HANDLE(doMove);
-DECLARE_MSG_HANDLE(doDraw);
-DECLARE_MSG_HANDLE(doGiveUp);
-DECLARE_MSG_HANDLE(doListRooms);
-DECLARE_MSG_HANDLE(doListSessions);
-DECLARE_MSG_HANDLE(doSendMessages);
-
-
-#endif /*CCNI_MSGHNDS_H_*/
+    list<CClientPtr>::iterator it;
+    CNotifyMsgBufPtr nmsg = _msg.packNotification();
+    for (it = _clis.begin(); it != _clis.end(); ++it)
+    {
+         (*it)->queueNotification(nmsg);
+    }
+    delete this;
+    return true;
+}

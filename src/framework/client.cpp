@@ -40,9 +40,34 @@
 #include "client.h"
 #include "engine.h"
 #include "broadcaster.h"
+#include "notifier.h"
 
-bool CClient::doread()
+void CClient::destroy()
 {
+    close(_tcpfd);
+    _curmsg.free();
+    _resmsg.free();
+    list<CCNINotification *>::iterator it;
+    for (it = _notimsgs.begin(); it != _notimsgs.end(); ++it)
+    {
+        delete (*it);
+    }
+    _notimsgs.clear();
+    if (_bder)
+    {
+        delete _bder;
+        _bder = NULL;
+    }
+    if (_notifier)
+    {
+        delete _notifier;
+        _notifier = NULL;
+    }
+    LOGI("client %s destroyed\n", uname());
+}
+bool CClient::doread(CNotifier & nt, CBroadCaster & bd)
+{
+    _pstate = st_reading;
     CCNIMsgParser::state_t st = _curmsg.read(_tcpfd);
     LOGV("read state: %d\n", st);
     if (st == CCNIMsgParser::st_rderror)
@@ -75,12 +100,9 @@ bool CClient::doread()
     }
 
     LOGV("got a ccni msg:\n%s\n", _curmsg.data());
-    CBroadCaster bd;
     _resmsg.create();
-    bd.create();
-    procMsgs(_curmsg, _resmsg, bd);
 
-    bd.destroy();
+    procMsgs(_curmsg, _resmsg, nt, bd);
     return dosend();
 }
 
@@ -120,6 +142,8 @@ bool CClient::donotify()
     if (st < 0)
     {
         LOGW("notification send error.\n");
+        delete inmsg;
+        _notimsgs.erase(_notimsgs.begin());
         return false;
     }
     if (st == 0)
@@ -136,15 +160,27 @@ bool CClient::donotify()
     //send notify eagain.
     return true;
 }
-bool CClient::doIncomingMsg()
+bool CClient::doWork()
 {
     bool ret = false;
+    CClientPtr cli;
+    if (_bder == NULL)
+    {
+        _bder = new CBroadCaster;
+        _bder->create();
+    }
+    if (_notifier == NULL)
+    {
+        _notifier = new CNotifier;
+        _notifier->create();
+    }
+
     CAutoMutex du(_lk);
     switch (_pstate)
     {
     case st_idle:
     case st_reading:
-        ret = doread();
+        ret = doread(*_notifier, *_bder);
         break;
     case st_sending:
         ret = dosend();
@@ -156,20 +192,35 @@ bool CClient::doIncomingMsg()
         ;
         break;
     }
+
     if (ret)
     {
         CEngine::instance().usrListener().assign(_ctsk);
     }
     else
     {
+        //hold a strong ref to this.
+        cli = _ctsk->client();
         //tbd: broad cast user NotifyUserLogoff...
         CEngine::instance().dataMgr().delClient(uname());
         LOGI("client cnt %d\n", CEngine::instance().dataMgr().userCount());
         LOGI("msg count %d times.\n", CEngine::instance().counter().msgCount());
-        LOGI("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
+        //  LOGI("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
         delete _ctsk;
     }
+
     LOGV("_psate = %s\n", strpstate());
+    if (!_bder->empty())
+    {
+        CEngine::instance().threadsPool().assign(_bder);
+        _bder = NULL;
+    }
+    if (!_notifier->empty())
+    {
+        CEngine::instance().threadsPool().assign(_notifier);
+        _notifier = NULL;
+    }
+
     return ret;
 }
 
@@ -181,9 +232,13 @@ bool CClient::queueNotification(CNotifyMsgBufPtr msg)
     //if we are in epoll waiting list, then remove it and then post a send request 
     if (_pstate == st_idle)
     {
-        _pstate = st_notifing;
         rmFromEpoll();
-        //post a new task.
+        donotify();
+        //
+        // we don't care donotify's return value.
+        // even donotify returns a error, we still assign to epoll list to 
+        // catch the break line event. 
+        //
         CEngine::instance().usrListener().assign(_ctsk);
     }
     return true;

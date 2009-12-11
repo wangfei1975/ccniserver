@@ -110,7 +110,7 @@ public:
                 
             }
         }
-        bool assign(CClientTask * ctsk)
+        bool assign(CClient::CClientTask * ctsk)
         {
             CClientPtr cli = ctsk->client();
             return cli->addToEpoll(_epfd);
@@ -123,7 +123,7 @@ private:
     list <CListenThread *> _ths;
     CMutex _lk;
 public:
-    void assign(CClientTask * usr)
+    void assign(CClient::CClientTask * usr)
     {
       
         CAutoMutex dumy(_lk);

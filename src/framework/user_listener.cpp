@@ -92,7 +92,7 @@ void CUserListener::CListenThread::doWork()
             }
             else
             {
-                CClientTask * cli = (CClientTask *)events[i].data.ptr;
+                 CClient::CClientTask * cli = (CClient::CClientTask *)events[i].data.ptr;
                  cli->client()->rmFromEpoll();
                  CEngine::instance().threadsPool().assign(cli);
            }
