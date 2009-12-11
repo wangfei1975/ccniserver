@@ -221,12 +221,12 @@ public:
     bool queueNotification(CNotifyMsgBufPtr msg);
 
 public:
-
+ 
     class CClientTask : public CJob
     {
 private:
-        CClientPtr _cli;
-
+        CClientPtr _cli; 
+ 
 public:
         ~CClientTask()
         {
