@@ -40,8 +40,9 @@
 #include "client.h"
 #include "engine.h"
 #include "broadcaster.h"
+#include "notifier.h"
 
-#define IMPL_MSG_HANDLE(name) int CClient::name(CXmlNode  msg, CCNIMsgPacker & res, CBroadCaster & bd)
+#define IMPL_MSG_HANDLE(name) int CClient::name(CXmlNode  msg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd)
 
 CClient::hndtable_t CClient::msghnds[] =
 {
@@ -62,7 +63,7 @@ CClient::hndtable_t CClient::msghnds[] =
 { xmlTagSendMessage, &CClient::doSendMessages },
 { NULL, &CClient::doUnknow } };
 
-void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CBroadCaster & bd)
+void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd)
 {
 
     int i;
@@ -79,7 +80,7 @@ void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CBroadCaster &
                 break;
             }
         }
-        if ((this->*msghnds[i].fun)(msg, res, bd) < 0)
+        if ((this->*msghnds[i].fun)(msg, res, notifier, bd) < 0)
         {
             break;
         }

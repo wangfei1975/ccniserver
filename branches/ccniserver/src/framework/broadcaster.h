@@ -43,7 +43,7 @@
 #include "log.h"
 #include "ccni_msg.h"
 using namespace std;
-class CBroadCaster
+class CBroadCaster : public CJob
 {
 public:
 typedef vector<struct sockaddr_in> addr_list_t;
@@ -52,6 +52,10 @@ private:
      CCNIMsgPacker _msg;
      broadcast_t   _broadcaster;
 public:
+     bool empty()
+     {
+        return _broadcaster.empty();
+     }
      void append(CXmlMsg msg)
      {
          _msg.appendmsg(msg);
@@ -91,9 +95,15 @@ public:
          }
          
      }
-    
+    virtual bool run()
+    {
+        return true;
+    }
 public:
-    
+    ~CBroadCaster()
+    {
+        destroy();
+    }
      
 };
 #endif /*BROADCASTER_H_*/

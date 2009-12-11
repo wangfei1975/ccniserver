@@ -35,6 +35,7 @@ CFLAG    += $(INC)
 
 SRCS     := $(wildcard *.cpp)
 OBJS      = $(SRCS:.cpp=.o)
+DEPS     := $(wildcard *.h)
 
 TARGET = $(BIN_DIR)$(CCNI_SERVER) 
 LIBS   += -lsqlite3 $(BIN_DIR)$(CCNI_LIB).a $(BIN_DIR)$(UTILS_LIB).a $(BIN_DIR)$(DBI_LIB).a
@@ -47,6 +48,7 @@ $(TARGET): $(OBJS)
 	echo $(LD) -o $(TARGET) $(LD_FLAG) $(OBJS) $(LIBS) 
 	$(LD) -o $(TARGET) $(LD_FLAG) $(OBJS) $(LIBS)
 
+%.cpp:DEPS
 
 %.o:%.cpp
 	echo $(CC) $(CFLAG) -o $@ -c $?

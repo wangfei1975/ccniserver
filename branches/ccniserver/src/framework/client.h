@@ -44,7 +44,6 @@
 #include "ccni_msg.h"
 #include "dbi.h"
 #include "threads_pool.h"
-
 /*
  *      
  * Offline 离线
@@ -59,13 +58,15 @@
 
 class CUdpSockData;
 class CBroadCaster;
-class CClientTask;
+class CNotifier;
 class CClient;
+
 typedef std::tr1::shared_ptr<CClient> CClientPtr;
 
 class CClient
 {
 public:
+    class CClientTask;
     enum state_t
     {
         Offline = 0,
@@ -85,7 +86,6 @@ public:
         st_notifing,
     };
 private:
-
     state_t _state;
     int _tcpfd;
     CUdpSockData * _udp;
@@ -95,46 +95,47 @@ private:
 
 private:
     proc_state_t _pstate;
-    CCNIMsgParser _curmsg;
-    CCNIMsgPacker _resmsg;
-    list<CCNINotification *> _notimsgs;
+    CCNIMsgParser _curmsg;      //current client request
+    CCNIMsgPacker _resmsg;      //response for current request 
+    CBroadCaster  * _bder;      //broadcast msgs which caused by current client request
+    CNotifier     * _notifier;  //notifications which caused by current client request
+    
+    list<CCNINotification *> _notimsgs; //notifications to this client.
+
 private:
-    CClientTask * _ctsk;
-    int _epfd;
-private:
-    bool doread();
+    bool doread(CNotifier & nt, CBroadCaster & bd);
     bool dosend();
     bool donotify();
 public:
     CClient(int tcpfd, CUdpSockData * udp, const secret_key_t & k1, const secret_key_t & k2,
             const struct sockaddr_in & udpaddr, const CDataBase::CRecord & usr) :
         _state(Online), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr),
-                _usrinfo(usr), _pstate(st_idle), _ctsk(NULL), _epfd(-1)
+                _usrinfo(usr), _pstate(st_idle),_bder(NULL),_notifier(NULL),_ctsk(NULL), _epfd(-1)
     {
 
     }
     virtual ~CClient()
     {
-        close(_tcpfd);
-        _curmsg.free();
-        _resmsg.free();
-        LOGI("client %s destroyed\n", uname());
+       destroy();
     }
 
 public:
-    int epfd()
-    {
-        return _epfd;
-    }
-
+    void destroy();
     bool addToEpoll(int epfd)
     {
         struct epoll_event ev;
-        ev.events = epollflag();// | EPOLLET;
         ev.data.ptr = _ctsk;
+        if (_pstate == st_idle || _pstate == st_reading)
+        {
+            ev.events = EPOLLIN | EPOLLPRI;
+        }
+        else
+        {
+            ev.events = EPOLLOUT;
+        }
+
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, _tcpfd, &ev) < 0)
         {
-
             LOGW("epoll ctrl add fd error: %s\n", strerror(errno));
             return false;
         }
@@ -156,17 +157,7 @@ public:
     {
         _ctsk = t;
     }
-    uint32_t epollflag()
-    {
-        if (_pstate == st_idle || _pstate == st_reading)
-        {
-            return EPOLLIN | EPOLLPRI;
-        }
-        else
-        {
-            return EPOLLOUT;
-        }
-    }
+
     proc_state_t pstate()
     {
         return _pstate;
@@ -226,38 +217,46 @@ private:
     // for sync doincoming  message and send notification.
     CMutex _lk;
 public:
-    bool doIncomingMsg();
+    bool doWork();
     bool queueNotification(CNotifyMsgBufPtr msg);
-};
-class CClientTask : public CJob
-{
-private:
-    CClientPtr _cli;
 
 public:
-    ~CClientTask()
-    {
-        LOGI("client task %s destroyed.\n", _cli->uname());
-    }
-    CClientTask(CClientPtr cli) :
-        _cli(cli)
-    {
-        cli->setClientTask(this);
-    }
-    //
-    // wo don't consider of multiple process of CClient::run() 
-    // since each time we just read one ccni message from client.
-    // after this message has been processed, then read next.
-    //
-    virtual bool run()
-    {
-        return _cli->doIncomingMsg();
-    }
-    CClientPtr client()
-    {
-        return _cli;
-    }
 
+    class CClientTask : public CJob
+    {
+private:
+        CClientPtr _cli;
+
+public:
+        ~CClientTask()
+        {
+            LOGI("client task %s destroyed.\n", _cli->uname());
+        }
+        CClientTask(CClientPtr cli) :
+            _cli(cli)
+        {
+            cli->_ctsk = this;
+        }
+        //
+        // wo don't consider of multiple process of CClient::run() 
+        // since each time we just read one ccni message from client.
+        // after this message has been processed, then read next.
+        //
+        virtual bool run()
+        {
+            return _cli->doWork();
+        }
+        CClientPtr client()
+        {
+            return _cli;
+        }
+
+    };
+
+private:
+    friend class CClientTask;
+    CClientTask * _ctsk;
+    int _epfd;
 };
 
 #endif /*CLINET_H_*/
