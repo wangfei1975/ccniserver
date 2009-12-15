@@ -34,7 +34,8 @@ INC      += -I.
 CFLAG    += $(INC)
 
 SRCS     := $(wildcard *.cpp)
-OBJS      = $(SRCS:.cpp=.o)
+OBJS     := $(SRCS:.cpp=.o)
+DEPENDS  := $(SRCS:.cpp=.d)
 
 
 TARGET = $(BIN_DIR)$(CCNI_TOOL) 
@@ -42,20 +43,30 @@ LIBS   += $(BIN_DIR)$(CCNI_LIB).a $(BIN_DIR)$(UTILS_LIB).a $(BIN_DIR)$(DBI_LIB).
 #LIBS += $(BIN_DIR)$(UTILS_LIB).a
 
 .PHONY : all
-all : $(TARGET)
+all : $(TARGET) 
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) $(DEPENDS)
 	echo $(LD) -o $(TARGET) $(LD_FLAG) $(OBJS) $(LIBS) 
 	$(LD) -o $(TARGET) $(LD_FLAG) $(OBJS) $(LIBS)
 
 
 %.o:%.cpp
-	echo $(CC) $(CFLAG) -o $@ -c $?
-	$(CC) $(CFLAG) -o $@ -c $?
+	echo $(CC) $(CFLAG) -o $@ -c $<
+	$(CC) $(CFLAG) -o $@ -c $<
+
+%.d: %.cpp
+	echo "make dependency" $@
+	@set -e; rm -f $@; \
+        $(CC) -M $(CFLAG) $< > $@.$$$$; \
+        sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+        rm -f $@.$$$$
+
+-include ${DEPENDS}
+
 
 .PHONY : clean	
 clean:
-	-rm -f $(OBJS) $(TARGET) 	
+	-rm -f $(OBJS) $(TARGET) $(DEPENDS) 	
 	
 
 	
