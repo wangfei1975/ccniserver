@@ -47,7 +47,7 @@ void dumpbin(void * buf, int len)
 }
 int main(int argc, char * argv[])
 {
-    printf(copyright);
+    printf("%s", copyright);
     if (argc < 2)
     {
         printf("ccni [serverip:port]\n");
