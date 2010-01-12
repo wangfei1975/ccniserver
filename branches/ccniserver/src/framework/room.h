@@ -47,16 +47,16 @@
 class CRoom
 {
 public:
-    typedef set <CClient *> usr_list_t;
+    typedef set <CClientPtr> usr_list_t;
 private:
     int _capacity;
     int _id;
     CMutex _lk;
     usr_list_t _usrlist;
 public:
-    bool enter(CClient * c, CBroadCaster & bd);
+    bool enter(CClientPtr c, CBroadCaster & bd);
      
-    bool leave(CClient * c, CBroadCaster & bd);
+    bool leave(CClientPtr c, CBroadCaster & bd);
      
 };
 

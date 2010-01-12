@@ -47,6 +47,7 @@ class CMutex
 private:
     pthread_mutex_t  _mutex;
     friend class CEvent;
+    friend class CCondition;
 public:
  
     CMutex()

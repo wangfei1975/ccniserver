@@ -54,7 +54,7 @@ $(TARGET): $(OBJS) $(DEPENDS)
 	$(CC) $(CFLAG) -o $@ -c $<
 
 %.d: %.cpp
-	echo "make dependency" $@
+#	echo "make dependency" $@
 	set -e; rm -f $@; \
         $(CC) -M $(CFLAG) $< > $@.$$$$; \
         sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \

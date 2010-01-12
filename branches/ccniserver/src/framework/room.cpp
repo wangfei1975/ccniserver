@@ -38,18 +38,25 @@
 /***************************************************************************************/
 #include "room.h"
 
-bool CRoom::enter(CClient * c, CBroadCaster & bd)
+bool CRoom::enter(CClientPtr c, CBroadCaster & bd)
 {
     usr_list_t::iterator it;
     CAutoMutex du(_lk);
-    for (it = _usrlist.begin(); it != _usrlist.end(); ++it)
+    if (_usrlist.insert(c).second)
     {
-        bd.insertaddr((*it)->udpsock(), (*it)->udpaddr());
+        for (it = _usrlist.begin(); it != _usrlist.end(); ++it)
+        {
+            if ((*it) != c)
+            {
+               bd.insertaddr((*it)->udpsock(), (*it)->udpaddr());
+            }
+        }
+        return true;
     }
-    return _usrlist.insert(c).second;
+    return false;
 }
 
-bool CRoom::leave(CClient * c, CBroadCaster & bd)
+bool CRoom::leave(CClientPtr c, CBroadCaster & bd)
 {
     usr_list_t::iterator it;
     CAutoMutex du(_lk);

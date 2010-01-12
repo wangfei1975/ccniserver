@@ -23,8 +23,8 @@
 
 ifndef DEBUG
 DEBUG = true
-CC = g++323
-LD = g++323
+CC = g++
+LD = g++
 AR = ar
 CFLAG  = -Wall -pipe -ggdb -D _DEBUG
 endif
@@ -41,6 +41,7 @@ DEPENDS  := $(SRCS:.cpp=.d)
 
 TARGET = $(BIN_DIR)$(UTILS_LIB).a 
 
+
 .PHONY : all
 all : $(TARGET) 
 
@@ -53,11 +54,12 @@ $(TARGET): $(OBJS) $(DEPENDS)
 	$(CC) $(CFLAG) -o $@ -c $<
 
 %.d:%.cpp
-	echo "make dependency" $@
+#	echo "make dependency" $@
 	@set -e; rm -f $@; \
         $(CC) -M $(CFLAG) $< > $@.$$$$; \
         sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
         rm -f $@.$$$$
+
 
 -include ${DEPENDS}
 
