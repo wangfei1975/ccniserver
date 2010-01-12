@@ -42,7 +42,7 @@
 #include "broadcaster.h"
 #include "notifier.h"
 
-#define IMPL_MSG_HANDLE(name) int CClient::name(CXmlNode  msg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd)
+#define IMPL_MSG_HANDLE(name) int CClient::name(CXmlNode  msg)
 
 CClient::hndtable_t CClient::msghnds[] =
 {
@@ -63,7 +63,7 @@ CClient::hndtable_t CClient::msghnds[] =
 { xmlTagSendMessage, &CClient::doSendMessages },
 { NULL, &CClient::doUnknow } };
 
-void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd)
+void CClient::procMsgs(CCNIMsgParser & pmsg)
 {
 
     int i;
@@ -80,7 +80,7 @@ void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CNotifier & no
                 break;
             }
         }
-        if ((this->*msghnds[i].fun)(msg, res, notifier, bd) < 0)
+        if ((this->*msghnds[i].fun)(msg) < 0)
         {
             break;
         }
@@ -88,7 +88,7 @@ void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CNotifier & no
 
     const CCNI_HEADER & hd(pmsg.header());
 
-    if (!res.pack(hd.seq, hd.udata, hd.secret1, hd.secret2))
+    if (!_resmsg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2))
     {
         LOGE("pack error..\n");
     }
@@ -101,15 +101,51 @@ void CClient::procMsgs(CCNIMsgParser & pmsg, CCNIMsgPacker & res, CNotifier & no
  * 
  * 
  * */
-
+#define doreturn(rcode, des) {  CXmlMsg lgmsg; lgmsg.create(xmlTagEnterRoomRes);\
+                                lgmsg.addParameter(xmlTagReturnCode, rcode); \
+                                lgmsg.addParameter(xmlTagDescription, des);\
+                               _resmsg.appendmsg(lgmsg);  \
+                               LOGV(" out %d\n", rcode);  \
+                               return rcode;}
 IMPL_MSG_HANDLE(doEnterRoom)
 {
-    return 0;
+    LOGV("in\n");
+
+    int roomid = msg.findChild(xmlTagId).getIntContent();
+
+    int ret = enterRoom(roomid);
+    if (ret == -1)
+    {
+        doreturn(-1, "user state error");
+    }
+    else if (ret == -2)
+    {
+        doreturn(-2, "unknow room id");
+    }
+    else if (ret == -3)
+    {
+        doreturn(-3, "room full");
+    }
+
+    doreturn(0, "enter room success");
+
 }
 
 IMPL_MSG_HANDLE(doLeaveRoom)
 {
-    return 0;
+    LOGV("in\n");
+
+    if (_state == Online || _state == Offline || _ctsk == NULL || _roomid < 0)
+    {
+        doreturn(-1, "user state error");
+    }
+
+    if (_roomid> 0)
+    {
+        leaveRoom();
+    }
+
+    doreturn(0, "leave room success");
 }
 
 IMPL_MSG_HANDLE(doNewSession)
@@ -165,7 +201,7 @@ IMPL_MSG_HANDLE(doUnknow)
 {
     CXmlMsg lgmsg;
     lgmsg.create(xmlTagUnknowMessage);
-    res.appendmsg(lgmsg);
+    _resmsg.appendmsg(lgmsg);
     return 0;
 }
 
@@ -181,7 +217,7 @@ IMPL_MSG_HANDLE(doCCNI)
     svrinfo.addParameter(xmlTagCCNIVersion, "1.0");
     svrinfo.addParameter(xmlTagDescription, "CCNI Chinese Chess server 1.0 for Linux");
     lgmsg.addChild(svrinfo);
-    res.appendmsg(lgmsg);
+    _resmsg.appendmsg(lgmsg);
     // LOGV("out\n");
     return 0;
 }
@@ -190,14 +226,12 @@ IMPL_MSG_HANDLE(doMyState)
     CXmlMsg lgmsg;
     lgmsg.create(xmlTagMyStateRes);
     lgmsg.addParameter(xmlTagState, strstate());
-    res.appendmsg(lgmsg);
+    _resmsg.appendmsg(lgmsg);
     return 0;
 }
 IMPL_MSG_HANDLE(doLogout)
 {
-    CXmlMsg lgmsg;
-    lgmsg.create(xmlTagLogoutRes);
-    lgmsg.addParameter(xmlTagReturnCode, 0);
-    res.appendmsg(lgmsg);
+    //tbd:
+    doreturn(0, "logout success");
     return 0;
 }

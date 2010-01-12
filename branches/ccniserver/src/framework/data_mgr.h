@@ -50,7 +50,7 @@
 class CDataMgr
 {
 public:
-    typedef map <int, CRoom> room_list_t;
+    typedef map <int, CRoomPtr> room_list_t;
     typedef map<string, CClientPtr> client_list_t;
 private:
     client_list_t _list;
@@ -66,14 +66,15 @@ public:
         return _list.size();
     }
     //room related operations
-    CRoom * findRoom(int roomid)
+    CRoomPtr findRoom(int roomid)
     {
         room_list_t::iterator it = _rooms.find(roomid);
         if (it == _rooms.end())
         {
-            return NULL;
+            CRoomPtr d;
+            return d;
         }
-        return &(it->second);
+        return (it->second);
     }
 
     CClientPtr findClient(const char * uname)
@@ -82,7 +83,8 @@ public:
         client_list_t::iterator it = _list.find(uname);
         if (it == _list.end())
         {
-            return CClientPtr();
+            CClientPtr d;
+            return d;
         }
         return (it->second);
     }
@@ -108,13 +110,20 @@ public:
         }
         _list.erase(it);
     }
-    bool create()
+    bool create(const CHallConfig & hcfg)
     {
+        CHallConfig::roomlist_t::const_iterator it;
+        for (it = hcfg.rooms.begin(); it != hcfg.rooms.end(); ++it)
+        {
+            CRoomPtr r(new CRoom(*it));
+            _rooms[r->id()] = r;
+        }
         return true;
     }
     void destroy()
     {
         client_list_t::iterator it;
+        _rooms.clear();
         CAutoMutex du(_listlk);
         // we are using referenced counted ptr point to each client, 
         // so, we don't need delete each one any more.

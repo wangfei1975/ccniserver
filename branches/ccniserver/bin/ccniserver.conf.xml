@@ -35,7 +35,7 @@
    <SecretKeyTimeOut>5</SecretKeyTimeOut>
    
    <!--
-      becareful of msg queue size. (1000)    
+      threads 
    -->
    <PoolThreadCount>8</PoolThreadCount>
    <UserListenThreadCount>4</UserListenThreadCount>
@@ -45,8 +45,37 @@
    <!--
         game rooms
     -->
-   <Rooms>
-   </Rooms>   
+   <HallConfig>
+       <Room>
+           <Id>1</Id>
+           <Capacity>200</Capacity>
+           <Description>First Level Room</Description>
+       </Room>
+
+       <Room>
+           <Id>2</Id>
+           <Capacity>255</Capacity>
+           <Description>Second Level Room</Description>
+       </Room>
+
+       <Room>
+           <Id>3</Id>
+           <Capacity>100</Capacity>
+           <Description>Third Level Room</Description>
+       </Room>
+   
+       <Room>
+           <Id>4</Id>
+           <Capacity>300</Capacity>
+           <Description>Fourth Level Room</Description>
+       </Room>
+       
+       <Room>
+           <Id>5</Id>
+           <Capacity>40</Capacity>
+           <Description>Fifth Level Room</Description>
+       </Room>
+   </HallConfig>   
 
 </CCNIServerConfiguration>
 

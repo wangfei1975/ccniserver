@@ -109,6 +109,13 @@ private:
     CDataBase::CRecord _usrinfo;
 
 private:
+    //current room id, if in room.
+    int _roomid;
+    int enterRoom(int rid);
+    void leaveRoom();
+    
+
+private:
     io_state_t _pstate;
     // for sync io process.
     CMutex _iolk;

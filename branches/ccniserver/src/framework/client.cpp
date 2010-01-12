@@ -102,7 +102,7 @@ bool CClient::doread(CNotifier & nt, CBroadCaster & bd)
     LOGV("got a ccni msg:\n%s\n", _curmsg.data());
     _resmsg.create();
 
-    procMsgs(_curmsg, _resmsg, nt, bd);
+    procMsgs(_curmsg);
     return dosend();
 }
 
@@ -202,12 +202,16 @@ bool CClient::doWork()
     }
     else
     {
+        //io error, we take it as break line case.
         //hold a strong reference to this.
         cli = _ctsk->client();
-        //tbd: broad cast user NotifyUserLogoff...
-        CEngine::instance().dataMgr().delClient(uname());
-        LOGI("client cnt %d\n", CEngine::instance().dataMgr().userCount());
-        LOGI("msg count %d times.\n", CEngine::instance().counter().msgCount());
+        CDataMgr & dmgr = CEngine::instance().dataMgr();
+        leaveRoom();
+
+        dmgr.delClient(uname());
+        _state = Offline;
+        LOGI("client cnt %d\n", dmgr.userCount());
+        LOGV("msg count %d times.\n", CEngine::instance().counter().msgCount());
         //  LOGI("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
         delete _ctsk;
         _ctsk = NULL;
@@ -215,11 +219,14 @@ bool CClient::doWork()
 
     LOGV("_psate = %s\n", strpstate());
     // in case of this processing generate some broad cast message.
+    // we if broad cast msg is not empty, we assign it to threads poll.
+    // if is empty, we don't need delete it, we can use it in next ccni msg.
     if (!_bder->empty())
     {
         CEngine::instance().threadsPool().assign(_bder);
         _bder = NULL;
     }
+
     // in case of this processing generate some notification to other client.
     if (!_notifier->empty())
     {
@@ -250,3 +257,63 @@ bool CClient::queueNotification(CNotifyMsgBufPtr msg)
     return true;
 }
 
+void CClient::leaveRoom()
+{
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    if (_roomid <= 0)
+    {
+        return;
+    }
+    CRoomPtr rm = dmgr.findRoom(_roomid);
+
+    if (rm != NULL)
+    {
+        if (!rm->leave(_ctsk->client(), *_bder))
+        {
+            LOGE("leave room error. bugs here.\n")
+        }
+    }
+    else
+    {
+        LOGE("error, leave room bugs here.\n")
+    }
+    _state = Online;
+    _roomid = -1;
+
+    CXmlMsg bdmsg;
+    if (!_bder->empty())
+    {
+        bdmsg.create(xmlTagBroadcastEnterRoom);
+        bdmsg.addParameter(xmlTagUserName, uname());
+        _bder->append(bdmsg);
+    }
+
+}
+int CClient::enterRoom(int rid)
+{
+    if (_state != Online || _ctsk == NULL)
+    {
+        return -1;
+    }
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    CRoomPtr room = dmgr.findRoom(rid);
+    if (room == NULL)
+    {
+        return -2;
+    }
+
+    if (!room->enter(_ctsk->client(), *_bder))
+    {
+        return -3;
+    }
+    _state = Idle;
+    _roomid = rid;
+    if (!_bder->empty())
+    {
+        CXmlMsg bdmsg;
+        bdmsg.create(xmlTagBroadcastEnterRoom);
+        bdmsg.addParameter(xmlTagUserName, uname());
+        _bder->append(bdmsg);
+    }
+    return 0;
+}
