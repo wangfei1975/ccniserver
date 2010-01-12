@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -50,17 +50,32 @@
 class CDataMgr
 {
 public:
-    typedef vector <CRoom> room_list_t;
+    typedef map <int, CRoom> room_list_t;
     typedef map<string, CClientPtr> client_list_t;
 private:
     client_list_t _list;
     CMutex _listlk;
+
+    room_list_t _rooms;
+
 public:
+
     int userCount()
     {
         CAutoMutex du(_listlk);
         return _list.size();
     }
+    //room related operations
+    CRoom * findRoom(int roomid)
+    {
+        room_list_t::iterator it = _rooms.find(roomid);
+        if (it == _rooms.end())
+        {
+            return NULL;
+        }
+        return &(it->second);
+    }
+
     CClientPtr findClient(const char * uname)
     {
         CAutoMutex du(_listlk);
@@ -101,10 +116,12 @@ public:
     {
         client_list_t::iterator it;
         CAutoMutex du(_listlk);
-        for (it = _list.begin(); it != _list.end(); ++it)
-        {
-          //  delete (it->second);
-        }
+        // we are using referenced counted ptr point to each client, 
+        // so, we don't need delete each one any more.
+        //for (it = _list.begin(); it != _list.end(); ++it)
+        //{
+        //  delete (it->second);
+        //}
         _list.clear();
     }
 };

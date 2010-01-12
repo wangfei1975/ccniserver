@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -173,8 +173,7 @@ int CDataBase::verifyUser(const char * name, const char * pwd, CRecord & rec)
         ret = -1;
     }
 
-    _End: 
-    sqlite3_reset(pStmt);
+    _End: sqlite3_reset(pStmt);
     sqlite3_finalize(pStmt);
     _lk.unlock();
     return ret;
@@ -195,8 +194,8 @@ int CDataBase::updateUserLoginTime(const char * uname)
 
     //SYSTEMTIME tm;
     //GetLocalTime(&tm);
-    sprintf(stm, "%04d%02d%02d%02d%02d%02d", ltm.tm_year+1900, ltm.tm_mon+1, ltm.tm_mday, ltm.tm_hour, ltm.tm_min,
-            ltm.tm_sec);
+    sprintf(stm, "%04d%02d%02d%02d%02d%02d", ltm.tm_year+1900, ltm.tm_mon+1, ltm.tm_mday,
+            ltm.tm_hour, ltm.tm_min, ltm.tm_sec);
 
     sprintf(sqlbuf, sqlUpdateUserLoginTm, stm, uname);
     CAutoMutex dumy(_lk);
@@ -214,8 +213,8 @@ int CDataBase::updateUser(const CRecord * rec)
     char sqlbuf[SQL_BUFLEN];
     char * zErrMsg= NULL;
 
-    sprintf(sqlbuf, sqlUpdateUser, rec->nicName.c_str(), rec->pwd.c_str(), rec->lastLoginTime.c_str(), rec->score,
-            rec->name.c_str());
+    sprintf(sqlbuf, sqlUpdateUser, rec->nicName.c_str(), rec->pwd.c_str(),
+            rec->lastLoginTime.c_str(), rec->score, rec->name.c_str());
     CAutoMutex dumy(_lk);
     if (sqlite3_exec(_db, sqlbuf, NULL, 0, &zErrMsg) != SQLITE_OK)
     {

@@ -160,6 +160,9 @@ bool CClient::donotify()
     //send notify eagain.
     return true;
 }
+
+// doWork was trigered by epoll event.
+//
 bool CClient::doWork()
 {
     bool ret = false;
@@ -175,7 +178,7 @@ bool CClient::doWork()
         _notifier->create();
     }
 
-    CAutoMutex du(_lk);
+    CAutoMutex du(_iolk);
     switch (_pstate)
     {
     case st_idle:
@@ -199,7 +202,7 @@ bool CClient::doWork()
     }
     else
     {
-        //hold a strong ref to this.
+        //hold a strong reference to this.
         cli = _ctsk->client();
         //tbd: broad cast user NotifyUserLogoff...
         CEngine::instance().dataMgr().delClient(uname());
@@ -207,14 +210,17 @@ bool CClient::doWork()
         LOGI("msg count %d times.\n", CEngine::instance().counter().msgCount());
         //  LOGI("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
         delete _ctsk;
+        _ctsk = NULL;
     }
 
     LOGV("_psate = %s\n", strpstate());
+    // in case of this processing generate some broad cast message.
     if (!_bder->empty())
     {
         CEngine::instance().threadsPool().assign(_bder);
         _bder = NULL;
     }
+    // in case of this processing generate some notification to other client.
     if (!_notifier->empty())
     {
         CEngine::instance().threadsPool().assign(_notifier);
@@ -226,10 +232,10 @@ bool CClient::doWork()
 
 bool CClient::queueNotification(CNotifyMsgBufPtr msg)
 {
-    CAutoMutex du(_lk);
+    CAutoMutex du(_iolk);
 
     _notimsgs.push_back(new CCNINotification(msg));
-    //if we are in epoll waiting list, then remove it and then post a send request 
+    //if we are in epoll waiting list, then remove it and  post a send request 
     if (_pstate == st_idle)
     {
         rmFromEpoll();

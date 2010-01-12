@@ -63,6 +63,21 @@ class CClient;
 
 typedef std::tr1::shared_ptr<CClient> CClientPtr;
 
+/*
+ *  Client socket IO state transition design idea: 
+ *   . After creating, io state set to st_idle. and tcp socket added to Epoll as read triger.
+ *   . once triged by incoming ccni msg, it transite to st_reading state, the state kept until a complete
+ *     ccni msg received and finished the message processing. 
+ *     this may include multiple epoll triger event.
+ *   . When client start send response, the state transite to st_sending 
+ *   . when send response complete, client check whether there are some notifications need to process,
+ *     if so process it, else transite to st_idle.
+ *   . transite to st_notifing until all notifications are processed.
+ *     
+ * 
+ * 
+ * */
+
 class CClient
 {
 public:
@@ -78,7 +93,7 @@ public:
         Moving = 0x20,
         Pondering = 0x40,
     };
-    enum proc_state_t
+    enum io_state_t
     {
         st_idle,
         st_reading,
@@ -94,12 +109,15 @@ private:
     CDataBase::CRecord _usrinfo;
 
 private:
-    proc_state_t _pstate;
-    CCNIMsgParser _curmsg;      //current client request
-    CCNIMsgPacker _resmsg;      //response for current request 
-    CBroadCaster  * _bder;      //broadcast msgs which caused by current client request
-    CNotifier     * _notifier;  //notifications which caused by current client request
-    
+    io_state_t _pstate;
+    // for sync io process.
+    CMutex _iolk;
+
+    CCNIMsgParser _curmsg; //current client request
+    CCNIMsgPacker _resmsg; //response for current request 
+    CBroadCaster * _bder; //broadcast msgs which caused by current client request
+    CNotifier * _notifier; //notifications which caused by current client request
+
     list<CCNINotification *> _notimsgs; //notifications to this client.
 
 private:
@@ -110,13 +128,14 @@ public:
     CClient(int tcpfd, CUdpSockData * udp, const secret_key_t & k1, const secret_key_t & k2,
             const struct sockaddr_in & udpaddr, const CDataBase::CRecord & usr) :
         _state(Online), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr),
-                _usrinfo(usr), _pstate(st_idle),_bder(NULL),_notifier(NULL),_ctsk(NULL), _epfd(-1)
+                _usrinfo(usr), _pstate(st_idle), _bder(NULL), _notifier(NULL), _ctsk(NULL),
+                _epfd(-1)
     {
 
     }
     virtual ~CClient()
     {
-       destroy();
+        destroy();
     }
 
 public:
@@ -158,7 +177,7 @@ public:
         _ctsk = t;
     }
 
-    proc_state_t pstate()
+    io_state_t pstate()
     {
         return _pstate;
     }
@@ -213,20 +232,18 @@ public:
 public:
 #include "ccni_msghnds.h"
 private:
-    // 
-    // for sync doincoming  message and send notification.
-    CMutex _lk;
+
 public:
     bool doWork();
     bool queueNotification(CNotifyMsgBufPtr msg);
 
 public:
- 
+
     class CClientTask : public CJob
     {
 private:
-        CClientPtr _cli; 
- 
+        CClientPtr _cli;
+
 public:
         ~CClientTask()
         {
