@@ -39,17 +39,18 @@
 #ifndef CCNI_MSGHNDS_H_
 #define CCNI_MSGHNDS_H_
 
-typedef  int (CClient::*msghnd_t)(CXmlNode msg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd);
+typedef  int (CClient::*msghnd_t)(CXmlNode msg);
 struct hndtable_t
 {
     const char * label;
+   // state_t      validst; // tbd;
     msghnd_t     fun;
 };
 static hndtable_t msghnds[];
 
-void procMsgs(CCNIMsgParser & msg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd);
+void procMsgs(CCNIMsgParser & msg);
 
-#define DECLARE_MSG_HANDLE(hname) int hname(CXmlNode  msg, CCNIMsgPacker & res, CNotifier & notifier, CBroadCaster & bd)
+#define DECLARE_MSG_HANDLE(hname) int hname(CXmlNode  msg)
 
 DECLARE_MSG_HANDLE(doCCNI);
 DECLARE_MSG_HANDLE(doMyState);

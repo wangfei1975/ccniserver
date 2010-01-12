@@ -122,7 +122,7 @@ public:
             return false;
         }
         LOGD("create %d threads in threads pool\n", _cfg.pool_threads);
-        if (!_dataMgr.create())
+        if (!_dataMgr.create(_cfg.hallcfg))
         {
             LOGE("create data manager error.\n");
             return false;

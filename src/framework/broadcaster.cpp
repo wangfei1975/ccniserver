@@ -20,7 +20,7 @@
 /*                                                                                     */
 /***************************************************************************************/
 /*  file name                                                                          */
-/*            broadcaster.h                                                            */
+/*            broadcaster.cpp                                                          */
 /*                                                                                     */
 /*  version                                                                            */
 /*             1.0                                                                     */
@@ -36,71 +36,34 @@
 /*  histroy                                                                            */
 /*             2008-11-23     initial draft                                            */
 /***************************************************************************************/
-#ifndef BROADCASTER_H_
-#define BROADCASTER_H_
-#include <map>
-#include <list>
-#include "log.h"
-#include "ccni_msg.h"
-using namespace std;
-class CBroadCaster : public CJob
-{
-public:
-    typedef vector<struct sockaddr_in> addr_list_t;
-    typedef map <CUdpSockData *, addr_list_t *> broadcast_t;
-private:
-    CCNIMsgPacker _msg;
-    broadcast_t _broadcaster;
-public:
-    bool empty()
-    {
-        return _broadcaster.empty();
-    }
-    void append(CXmlMsg msg)
-    {
-        _msg.appendmsg(msg);
-    }
-    bool insertaddr(CUdpSockData * udp, const struct sockaddr_in & addr)
-    {
-        broadcast_t::iterator it;
-        it = _broadcaster.find(udp);
-        if (it == _broadcaster.end())
-        {
-            addr_list_t * lst = new addr_list_t;
-            lst->push_back(addr);
-            _broadcaster[udp] = lst;
-        }
-        else
-        {
-            it->second->push_back(addr);
-        }
-        return true;
-    }
-    bool create()
-    {
-        if (!_msg.create())
-        {
-            return false;
-        }
-        return true;
-    }
+#include "client.h"
+#include "engine.h"
+#include "broadcaster.h"
+#include "udp_listener.h"
 
-    void destroy()
+bool CBroadCaster::run()
+{
+    CNotifyMsgBufPtr bufptr = _msg.packNotification();
+
+    if (bufptr->len() > 0)
     {
-        _msg.free();
         broadcast_t::iterator it;
         for (it = _broadcaster.begin(); it != _broadcaster.end(); ++it)
         {
-            delete (it->second);
-        }
-        _broadcaster.clear();
-    }
-    virtual bool run();
-public:
-    ~CBroadCaster()
-    {
-        destroy();
-    }
+            addr_list_t * lst =  (it->second);
+            CUdpSockData * sock = (it->first);
+            addr_list_t::iterator addrit;
 
-};
-#endif /*BROADCASTER_H_*/
+            for (addrit = lst->begin(); addrit != lst->end(); ++addrit)
+            {
+                if (!sock->sendto(bufptr->data(), bufptr->len(), &(*addrit), sizeof(*addrit)))
+                {
+                    LOGW("broad cast send to error  %s.\n", strerror(errno));
+                }
+            }
+        }
+    }
+    delete this;
+    return true;
+}
+

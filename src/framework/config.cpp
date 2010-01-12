@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -51,7 +51,7 @@ bool CLogConfig::create(CXmlNode nd)
     {
         path = get_executable_path() + path;
     }
-   
+
     path += "ccni.evt.";
 
     login = (nd.findChild(xmlLogLogin).getIntContent() == 1);
@@ -62,6 +62,46 @@ bool CLogConfig::create(CXmlNode nd)
     LOGD("ccni server event log logiout: %s\n", logout ? "True" : "False");
 
     return true;
+}
+
+bool CRoomConfig::create(CXmlNode nd)
+{
+    int v = nd.findChild(xmlId).getIntContent();
+    if (v > 0)
+    {
+        id = v;
+
+    }
+    v = nd.findChild(xmlCapacity).getIntContent();
+    if (v > 0)
+    {
+        capacity = v;
+    }
+    nd.findChild(xmlDescription).getContent(description);
+    LOGD("room id %d\n", id);
+    LOGD("room capacity %d\n", capacity);
+    LOGD("room description:%s\n", description.c_str());
+    return true;
+}
+bool CHallConfig::create(CXmlNode nd)
+{
+    for (CXmlNode n = nd.child(); !n.isEmpty(); n = n.next())
+    {
+        if (n.type() != XML_ELEMENT_NODE)
+        {
+            continue;
+        }
+        LOGD("%s\n", n.name());
+        if (strcmp(n.name(), xmlRoom) ==0)
+        {
+            CRoomConfig rcfg;
+            if (rcfg.create(n))
+            {
+                rooms.push_back(rcfg);
+            }
+        }
+    }
+    return (rooms.size() > 0);
 }
 
 bool CConfig::create(const char * cfgfname)
@@ -89,58 +129,64 @@ bool CConfig::create(const char * cfgfname)
     {
         LOGW("no valid udp listen list found, using default!\n");
     }
-    
+
     if (!logcfg.create(root.findChild(xmlLogConfig)))
     {
         LOGW("create log config error!\n");
     }
-   
-   if (root.findChild(xmlDBPathName).getContent(dburl).empty())
-   {
-       dburl = get_executable_path();
-       dburl += "db/ccni.db";
-   }
-   if (dburl[0] != '/')
-   {
-       dburl = get_executable_path() + dburl;
-   }
-   
-   if (root.findChild(xmlSecret).getContent(secret).empty())
-   {
-       LOGW("no scret in config file, using default secret.\n")
-       secret = "hello";
-   }
-   
-   pool_threads = root.findChild(xmlPoolThreadCount).getIntContent();
-   if (pool_threads == 0)
-   {
-       LOGW("no valid pool threads count in conf file. using default value.\n");
-       pool_threads = 4;
-   }
-   
-   usr_listen_threads = root.findChild(xmlUserListenThreadCount).getIntContent();
-   if (usr_listen_threads == 0)
-   {
-       LOGW("no valid usr listen threads count in conf file. using default value.\n");
-       usr_listen_threads = 1;
-   }
-   
-   login_timeout =  root.findChild(xmlLoginTimeOut).getIntContent();
-   if (login_timeout == 0)
-   {
-       LOGW("no valid login timeout in conf file. using default value.\n");
-       login_timeout = 5;
-   }
-   
-   secret_timeout = root.findChild(xmlSecretKeyTimeOut).getIntContent(); 
-   if (secret_timeout == 0)
-   {
-       LOGW("no valid secret timeout in conf file. using default value.\n");
-       secret_timeout = 5;
-   }
-   
-   LOGD("create configuration success.\n");
-   return true;
+
+    if (root.findChild(xmlDBPathName).getContent(dburl).empty())
+    {
+        dburl = get_executable_path();
+        dburl += "db/ccni.db";
+    }
+    if (dburl[0] != '/')
+    {
+        dburl = get_executable_path() + dburl;
+    }
+
+    if (root.findChild(xmlSecret).getContent(secret).empty())
+    {
+        LOGW("no scret in config file, using default secret.\n")
+        secret = "hello";
+    }
+
+    pool_threads = root.findChild(xmlPoolThreadCount).getIntContent();
+    if (pool_threads == 0)
+    {
+        LOGW("no valid pool threads count in conf file. using default value.\n");
+        pool_threads = 4;
+    }
+
+    usr_listen_threads = root.findChild(xmlUserListenThreadCount).getIntContent();
+    if (usr_listen_threads == 0)
+    {
+        LOGW("no valid usr listen threads count in conf file. using default value.\n");
+        usr_listen_threads = 1;
+    }
+
+    login_timeout = root.findChild(xmlLoginTimeOut).getIntContent();
+    if (login_timeout == 0)
+    {
+        LOGW("no valid login timeout in conf file. using default value.\n");
+        login_timeout = 5;
+    }
+
+    secret_timeout = root.findChild(xmlSecretKeyTimeOut).getIntContent();
+    if (secret_timeout == 0)
+    {
+        LOGW("no valid secret timeout in conf file. using default value.\n");
+        secret_timeout = 5;
+    }
+
+    if (!hallcfg.create(root.findChild(xmlHallConfig)))
+    {
+        LOGW("create Hall config error!\n");
+    }
+
+    LOGD("create configuration success.\n");
+
+    return true;
 }
 
 bool CConfig::_parseAddrLst(addrlist_t & lst, CXmlNode nd)

@@ -144,4 +144,8 @@
 #define xmlTagCCNIVersion               "CCNIVersion"
 #define xmlTagRes                       "Res"
 
+
+#define xmlTagId                       "Id"
+ 
+
 #endif /*CCNI_TAGS_H_*/
