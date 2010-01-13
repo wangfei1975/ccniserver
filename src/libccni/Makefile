@@ -23,49 +23,64 @@
 
 ifndef DEBUG
 DEBUG = true
-CC = g++323
-LD = g++323
+CC = g++
+LD = g++
 AR = ar
 CFLAG  = -Wall -pipe -ggdb -D _DEBUG
 endif
+ 
 
 INC      += -I.
 
 CFLAG    += $(INC)
 
 SRCS     := $(wildcard *.cpp)
+SRCC     := $(wildcard *.c)
+OBJC     := $(SRCC:.c=.o)
 OBJS     := $(SRCS:.cpp=.o)
-DEPENDS  := $(SRCS:.cpp=.d)
+OBJS += $(OBJC)
+DEPENDS  := $(OBJS:.o=.d)
 
 
-TARGET = $(BIN_DIR)$(CCNI_SCLIENT) 
-LIBS   += $(BIN_DIR)$(CCNI_LIB).a $(BIN_DIR)$(UTILS_LIB).a $(BIN_DIR)$(DBI_LIB).a
-#LIBS += $(BIN_DIR)$(UTILS_LIB).a
+TARGET   = $(BIN_DIR)$(LIBCCNICLIENT).a
+TARGETSO   = $(BIN_DIR)$(LIBCCNICLIENT).so
+
 
 .PHONY : all
-all : $(TARGET) 
+all : $(TARGET)
 
 $(TARGET): $(OBJS) $(DEPENDS)
-	echo $(LD) -o $(TARGET) $(LD_FLAG) $(OBJS) $(LIBS) 
-	$(LD) -o $(TARGET) $(LD_FLAG) $(OBJS) $(LIBS)
-
+	$(AR) -r $(TARGET) $(OBJS)  
+#	$(LD) -shared -o $(TARGETSO) $(LD_FLAG) $(OBJS) $(LIBS)
 
 %.o:%.cpp
 	echo $(CC) $(CFLAG) -o $@ -c $<
 	$(CC) $(CFLAG) -o $@ -c $<
 
-%.d: %.cpp
+%.o:%.c
+	echo $(CC) $(CFLAG) -o $@ -c $<
+	$(CC) $(CFLAG) -o $@ -c $<
+
+
+%.d:%.cpp
+#	echo "make dependency" $@
+	@set -e; rm -f $@; \
+	$(CC) -M $(CFLAG) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+%.d:%.c
 #	echo "make dependency" $@
 	@set -e; rm -f $@; \
         $(CC) -M $(CFLAG) $< > $@.$$$$; \
         sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
         rm -f $@.$$$$
-
+        
 -include ${DEPENDS}
-
 
 .PHONY : clean	
 clean:
-	-rm -f $(OBJS) $(TARGET) $(DEPENDS)	
+	-rm -f $(OBJS) $(TARGET) $(TARGETSO) $(DEPENDS) 	
+	
 
 	

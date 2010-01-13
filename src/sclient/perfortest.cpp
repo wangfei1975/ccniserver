@@ -28,7 +28,7 @@ static const char * copyright = "\n"
     "bjwf2000@gmail.com  11-20-2008\n"
     "http://ccniserver.googlecode.com\n\n";
 
-static void dumpbin(void * buf, int len)
+void dumpbin(void * buf, int len)
 {
     unsigned char * p = (unsigned char *)buf;
     int i;
@@ -45,7 +45,7 @@ static void dumpbin(void * buf, int len)
         printf("\n");
     }
 }
-int main(int argc, char * argv[])
+int main1(int argc, char * argv[])
 {
     printf("%s", copyright);
     if (argc < 2)

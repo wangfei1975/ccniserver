@@ -23,14 +23,16 @@
 
 PRGNAME = ccniserver 
 MAKE    = make --no-print-directory -s 
-CCNI_DIR        = ./ccni
+CCNI_DIR        = ./ccnimsg
 FRAMEWORK_DIR   = ./framework
 UTILS_DIR       = ./utils
 DBI_DIR         = ./dbi
 SCLIENT_DIR     = ./sclient
 TOOL_DIR        = ./tool
+LIBCCNICLIENT_DIR = ./libccni
 
-export CCNI_LIB      = libccni
+export LIBCCNICLIENT = libccni
+export CCNI_LIB      = libccnimsg
 export UTILS_LIB     = libutils
 export DBI_LIB       = libdbi
 export CCNI_SERVER   = $(PRGNAME)
@@ -73,7 +75,7 @@ export  LIBS = -L/usr/lib -lpthread -lxml2 -lssl
 export DEBUG
 
 .PHONY : all
-all : DISPTITLE $(CCNI_SERVER) mkccni
+all : DISPTITLE $(CCNI_SERVER) mkccni mklibccni_client
 
 $(CCNI_SERVER):mklibutils mklibccni mkdbi mkccniserver mkccnitool
 mkccniserver:
@@ -108,7 +110,11 @@ mkccnitool:
 	$(MAKE) -C $(TOOL_DIR)
 	@echo "make" $(CCNI_TOOL) complete
 	@echo
-
+mklibccni_client:
+	@echo start "make" $(LIBCCNICLIENT)...
+	$(MAKE) -C $(LIBCCNICLIENT_DIR)
+	@echo "make" $(LIBCCNICLIENT) complete
+	@echo
 DISPTITLE:
 	@echo "***********************************************"
 	@echo DEBUG   = $(DEBUG)
@@ -126,6 +132,8 @@ clean:
 	- $(MAKE) -C $(FRAMEWORK_DIR)   clean
 	- $(MAKE) -C $(SCLIENT_DIR)   clean
 	- $(MAKE) -C $(TOOL_DIR)   clean
+	- $(MAKE) -C $(LIBCCNICLIENT_DIR) clean
+
 
 
 
