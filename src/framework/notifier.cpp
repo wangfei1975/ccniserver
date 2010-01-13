@@ -43,7 +43,7 @@
 bool CNotifier::run()
 {
     list<CClientPtr>::iterator it;
-    CNotifyMsgBufPtr nmsg = _msg.packNotification();
+    CFlatMsgBufPtr nmsg = _msg.packToFlat();
     for (it = _clis.begin(); it != _clis.end(); ++it)
     {
          (*it)->queueNotification(nmsg);

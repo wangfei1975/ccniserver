@@ -84,21 +84,28 @@ public:
     class CClientTask;
     enum state_t
     {
-        Offline = 0,
-        Online = 0x01,
-        Idle = 0x02,
-        Sessional = 0x04,
-        Ready = 0x08,
-        Watching = 0x10,
-        Moving = 0x20,
-        Pondering = 0x40,
+        stOffline = 0,
+        stOnline = 0x01,
+        stIdle = 0x02,
+        stSessional = 0x04,
+        stReady = 0x08,
+        stWatching = 0x10,
+        stMoving = 0x20,
+        stPondering = 0x40,
+        
+        //combined state
+        stConnected = stOnline|stIdle|stSessional|stReady|stWatching|stMoving|stPondering,
+        stInRoom    = stIdle|stSessional|stReady|stWatching|stMoving|stPondering,
+        stInSession = stSessional|stReady|stWatching|stMoving|stPondering,
+        stPlaying   = stMoving|stPondering,
+        
     };
     enum io_state_t
     {
-        st_idle,
-        st_reading,
-        st_sending,
-        st_notifing,
+        iostIdle,
+        iostReading,
+        iostSending,
+        iostNotifing,
     };
 private:
     state_t _state;
@@ -128,14 +135,16 @@ private:
     list<CCNINotification *> _notimsgs; //notifications to this client.
 
 private:
-    bool doread(CNotifier & nt, CBroadCaster & bd);
+    bool doread();
     bool dosend();
     bool donotify();
+    
+    
 public:
     CClient(int tcpfd, CUdpSockData * udp, const secret_key_t & k1, const secret_key_t & k2,
             const struct sockaddr_in & udpaddr, const CDataBase::CRecord & usr) :
-        _state(Online), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr),
-                _usrinfo(usr), _pstate(st_idle), _bder(NULL), _notifier(NULL), _ctsk(NULL),
+        _state(stOnline), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr),
+                _usrinfo(usr), _pstate(iostIdle), _bder(NULL), _notifier(NULL), _ctsk(NULL),
                 _epfd(-1)
     {
 
@@ -151,7 +160,7 @@ public:
     {
         struct epoll_event ev;
         ev.data.ptr = _ctsk;
-        if (_pstate == st_idle || _pstate == st_reading)
+        if (_pstate == iostIdle || _pstate == iostReading)
         {
             ev.events = EPOLLIN | EPOLLPRI;
         }
@@ -204,11 +213,11 @@ public:
     {
         return _udpaddr;
     }
-    const char * strpstate()
+    const char * striostate()
     {
-        const char * spstate[] =
+        const char * iostate[] =
         { "idle", "reading", "sending", "notifing" };
-        return spstate[_pstate];
+        return iostate[_pstate];
     }
     const char * strstate()
     {
@@ -218,15 +227,15 @@ public:
             const char * name;
         } tab[]=
         {
-        { Offline, "Offline" },
-        { Online, "Online" },
-        { Idle, "Idle" },
-        { Sessional, "Sessional" },
-        { Ready, "Ready" },
-        { Watching, "Watching" },
-        { Moving, "Moving" },
-        { Pondering, "Pondering" },
-        { Offline, "Unknow state" } };
+        { stOffline, "Offline" },
+        { stOnline, "Online" },
+        { stIdle, "Idle" },
+        { stSessional, "Sessional" },
+        { stReady, "Ready" },
+        { stWatching, "Watching" },
+        { stMoving, "Moving" },
+        { stPondering, "Pondering" },
+        { stOffline, "Unknow state" } };
         int i;
         for (i = 0; i < (int)(sizeof(tab)/sizeof(tab[0]))-1; i++)
         {
@@ -242,7 +251,7 @@ private:
 
 public:
     bool doWork();
-    bool queueNotification(CNotifyMsgBufPtr msg);
+    bool queueNotification(CFlatMsgBufPtr msg);
 
 public:
 

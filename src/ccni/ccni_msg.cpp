@@ -39,17 +39,18 @@
 #include "ccni_msg.h"
 #include "utils.h"
 
-CNotifyMsgBufPtr CCNIMsgPacker::packNotification()
+CFlatMsgBufPtr CCNIMsgPacker::packToFlat()
 {
-    if (_data == NULL)
+    if (!pack(0,0,0,0))
     {
-        pack(0,0,0,0);
+        CFlatMsgBufPtr m;
+        return m;
     }
     int len = _hd.datalen + sizeof(_hd);
     uint8_t * data = new uint8_t[len];
     memcpy(data, &_hd, sizeof(_hd));
     memcpy(data + sizeof(_hd), _data, _hd.datalen);
-    CNotifyMsgBufPtr msg(new CNotifyMsgBuf(data, len));
+    CFlatMsgBufPtr msg(new CFlatMsgBuf(data, len));
     return msg;
 }
 int CCNIMsgPacker::block_send(int sock)

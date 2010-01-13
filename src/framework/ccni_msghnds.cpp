@@ -42,27 +42,42 @@
 #include "broadcaster.h"
 #include "notifier.h"
 
-#define IMPL_MSG_HANDLE(name) int CClient::name(CXmlNode  msg)
+#define IMPL_MSG_HANDLE(name) int CClient::name(CXmlNode msg)
 
 CClient::hndtable_t CClient::msghnds[] =
 {
-{ xmlTagCCNI, &CClient::doCCNI },
-{ xmlTagMyState, &CClient::doMyState },
-{ xmlTagLogout, &CClient::doLogout },
-{ xmlTagEnterRoom, &CClient::doEnterRoom },
-{ xmlTagLeaveRoom, &CClient::doLeaveRoom },
-{ xmlTagNewSession, &CClient::doNewSession },
-{ xmlTagEnterSession, &CClient::doEnterSession },
-{ xmlTagWatchSession, &CClient::doWatchSession },
-{ xmlTagReady, &CClient::doReady },
-{ xmlTagMove, &CClient::doMove },
-{ xmlTagDraw, &CClient::doDraw },
-{ xmlTagGiveUp, &CClient::doGiveUp },
-{ xmlTagListRooms, &CClient::doListRooms },
-{ xmlTagListSessions, &CClient::doListSessions },
-{ xmlTagSendMessage, &CClient::doSendMessages },
-{ NULL, &CClient::doUnknow } };
+{ xmlTagCCNI, stConnected, &CClient::doCCNI },
+{ xmlTagMyState, stConnected, &CClient::doMyState },
+{ xmlTagLogout, stOnline, &CClient::doLogout },
+{ xmlTagEnterRoom, stOnline, &CClient::doEnterRoom },
+{ xmlTagLeaveRoom, stIdle, &CClient::doLeaveRoom },
+{ xmlTagNewSession, stIdle, &CClient::doNewSession },
+{ xmlTagEnterSession, stIdle, &CClient::doEnterSession },
+{ xmlTagWatchSession, stIdle, &CClient::doWatchSession },
+{ xmlTagReady, stSessional, &CClient::doReady },
+{ xmlTagMove, stMoving, &CClient::doMove },
+{ xmlTagDraw, stPlaying, &CClient::doDraw },
+{ xmlTagGiveUp, stPlaying, &CClient::doGiveUp },
+{ xmlTagListRooms, stOnline, &CClient::doListRooms },
+{ xmlTagListSessions, stIdle, &CClient::doListSessions },
+{ xmlTagSendMessage, stConnected, &CClient::doSendMessages },
+{ NULL, stConnected, &CClient::doUnknow } };
 
+bool CClient::checkstate(CXmlNode msg, state_t vstate)
+{
+    if ((_state & vstate) == 0)
+    {
+        string tag(msg.name());
+        tag += "Res";
+        CXmlMsg lgmsg;
+        lgmsg.create(tag.c_str());
+        lgmsg.addParameter(xmlTagReturnCode, -1);
+        lgmsg.addParameter(xmlTagDescription, "user state error");
+        _resmsg.appendmsg(lgmsg);
+        return false;
+    }
+    return true;
+}
 void CClient::procMsgs(CCNIMsgParser & pmsg)
 {
 
@@ -80,12 +95,53 @@ void CClient::procMsgs(CCNIMsgParser & pmsg)
                 break;
             }
         }
+        //
+        // check state
+        //
+        if (!checkstate(msg, msghnds[i].vstate))
+        {
+            LOGW("user state error. req:%s cur state:%s\n", msg.name(), strstate());
+            break;
+        }
+
+        if (_bder == NULL)
+        {
+            _bder = new CBroadCaster;
+            _bder->create();
+        }
+        if (_notifier == NULL)
+        {
+            _notifier = new CNotifier;
+            _notifier->create();
+        }
+
         if ((this->*msghnds[i].fun)(msg) < 0)
         {
             break;
         }
+
+        // in case of this processing generate some broadcast messages.
+        // if broadcast msg is not empty, we assign it to threads poll.
+        // if is empty, we don't need delete it, we can use it in next loop or next ccni message
+        if (!_bder->empty())
+        {
+            CEngine::instance().threadsPool().assign(_bder);
+            _bder = NULL;
+        }
+
+        // in case of this processing generate some notification to other clients.
+        if (!_notifier->empty())
+        {
+            CEngine::instance().threadsPool().assign(_notifier);
+            _notifier = NULL;
+        }
+
     }
 
+    //
+    // in case of multiple ccni message in one xml request, we pack all response in one
+    // ccni message. 
+    //
     const CCNI_HEADER & hd(pmsg.header());
 
     if (!_resmsg.pack(hd.seq, hd.udata, hd.secret1, hd.secret2))
@@ -101,12 +157,74 @@ void CClient::procMsgs(CCNIMsgParser & pmsg)
  * 
  * 
  * */
-#define doreturn(rcode, des) {  CXmlMsg lgmsg; lgmsg.create(xmlTagEnterRoomRes);\
-                                lgmsg.addParameter(xmlTagReturnCode, rcode); \
-                                lgmsg.addParameter(xmlTagDescription, des);\
-                               _resmsg.appendmsg(lgmsg);  \
-                               LOGV(" out %d\n", rcode);  \
-                               return rcode;}
+#define doreturn(tag, rcode, des) {  CXmlMsg lgmsg; lgmsg.create(tag);\
+                                     lgmsg.addParameter(xmlTagReturnCode, rcode); \
+                                     lgmsg.addParameter(xmlTagDescription, des);\
+                                     _resmsg.appendmsg(lgmsg);  \
+                                     LOGV(" out %d\n", rcode);  \
+                                     return rcode;}
+
+void CClient::leaveRoom()
+{
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    if (_roomid <= 0)
+    {
+        return;
+    }
+    CRoomPtr rm = dmgr.findRoom(_roomid);
+
+    if (rm != NULL)
+    {
+        if (!rm->leave(_ctsk->client(), *_bder))
+        {
+            LOGE("leave room error. bugs here.\n")
+        }
+    }
+    else
+    {
+        LOGE("error, leave room bugs here.\n")
+    }
+    _state = stOnline;
+    _roomid = -1;
+
+    CXmlMsg bdmsg;
+    if (!_bder->empty())
+    {
+        bdmsg.create(xmlTagBroadcastEnterRoom);
+        bdmsg.addParameter(xmlTagUserName, uname());
+        _bder->append(bdmsg);
+    }
+
+}
+int CClient::enterRoom(int rid)
+{
+    if (_state != stOnline || _ctsk == NULL)
+    {
+        return -1;
+    }
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    CRoomPtr room = dmgr.findRoom(rid);
+    if (room == NULL)
+    {
+        return -2;
+    }
+
+    if (!room->enter(_ctsk->client(), *_bder))
+    {
+        return -3;
+    }
+    _state = stIdle;
+    _roomid = rid;
+    if (!_bder->empty())
+    {
+        CXmlMsg bdmsg;
+        bdmsg.create(xmlTagBroadcastEnterRoom);
+        bdmsg.addParameter(xmlTagUserName, uname());
+        _bder->append(bdmsg);
+    }
+    return 0;
+}
+
 IMPL_MSG_HANDLE(doEnterRoom)
 {
     LOGV("in\n");
@@ -116,18 +234,18 @@ IMPL_MSG_HANDLE(doEnterRoom)
     int ret = enterRoom(roomid);
     if (ret == -1)
     {
-        doreturn(-1, "user state error");
+        doreturn(xmlTagEnterRoomRes, -1, "user state error");
     }
     else if (ret == -2)
     {
-        doreturn(-2, "unknow room id");
+        doreturn(xmlTagEnterRoomRes, -2, "unknow room id");
     }
     else if (ret == -3)
     {
-        doreturn(-3, "room full");
+        doreturn(xmlTagEnterRoomRes, -3, "room full");
     }
 
-    doreturn(0, "enter room success");
+    doreturn(xmlTagEnterRoomRes, 0, "enter room success");
 
 }
 
@@ -135,9 +253,9 @@ IMPL_MSG_HANDLE(doLeaveRoom)
 {
     LOGV("in\n");
 
-    if (_state == Online || _state == Offline || _ctsk == NULL || _roomid < 0)
+    if (_roomid < 0)
     {
-        doreturn(-1, "user state error");
+        doreturn(xmlTagLeaveRoomRes, -1, "user state error");
     }
 
     if (_roomid> 0)
@@ -145,7 +263,7 @@ IMPL_MSG_HANDLE(doLeaveRoom)
         leaveRoom();
     }
 
-    doreturn(0, "leave room success");
+    doreturn(xmlTagLeaveRoomRes, 0, "leave room success");
 }
 
 IMPL_MSG_HANDLE(doNewSession)
@@ -232,6 +350,6 @@ IMPL_MSG_HANDLE(doMyState)
 IMPL_MSG_HANDLE(doLogout)
 {
     //tbd:
-    doreturn(0, "logout success");
+    doreturn(xmlTagLogoutRes, 0, "logout success");
     return 0;
 }

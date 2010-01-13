@@ -65,9 +65,10 @@ void CClient::destroy()
     }
     LOGI("client %s destroyed\n", uname());
 }
-bool CClient::doread(CNotifier & nt, CBroadCaster & bd)
+
+bool CClient::doread()
 {
-    _pstate = st_reading;
+    _pstate = iostReading;
     CCNIMsgParser::state_t st = _curmsg.read(_tcpfd);
     LOGV("read state: %d\n", st);
     if (st == CCNIMsgParser::st_rderror)
@@ -84,7 +85,7 @@ bool CClient::doread(CNotifier & nt, CBroadCaster & bd)
     if (st == CCNIMsgParser::st_rdbd || CCNIMsgParser::st_rdhd)
     {
         //just waiting for next read.
-        _pstate = st_reading;
+        _pstate = iostReading;
         return true;
     }
 
@@ -96,7 +97,7 @@ bool CClient::doread(CNotifier & nt, CBroadCaster & bd)
     uint32_t c = CEngine::instance().counter().incMsgCnt();
     if ((c %5000) == 0)
     {
-        LOGW("total message count:%d\n", c);
+        LOGI("total message count:%d\n", c);
     }
 
     LOGV("got a ccni msg:\n%s\n", _curmsg.data());
@@ -108,7 +109,7 @@ bool CClient::doread(CNotifier & nt, CBroadCaster & bd)
 
 bool CClient::dosend()
 {
-    _pstate = st_sending;
+    _pstate = iostSending;
     CCNIMsgPacker::state_t st = _resmsg.send(_tcpfd);
     if (st == CCNIMsgPacker::st_sderror)
     {
@@ -130,13 +131,13 @@ bool CClient::donotify()
     if (_notimsgs.empty())
     {
         LOGV("empty notify message queue.");
-        _pstate = st_idle;
+        _pstate = iostIdle;
         //
         //we don't return false,since we want next reading.
         //
         return true;
     }
-    _pstate = st_notifing;
+    _pstate = iostNotifing;
     CCNINotification * inmsg = *_notimsgs.begin();
     int st = inmsg->send(_tcpfd);
     if (st < 0)
@@ -152,7 +153,7 @@ bool CClient::donotify()
         delete inmsg;
         if (_notimsgs.empty())
         {
-            _pstate = st_idle;
+            _pstate = iostIdle;
         }
         // else send next notification.
         return true;
@@ -167,28 +168,17 @@ bool CClient::doWork()
 {
     bool ret = false;
     CClientPtr cli;
-    if (_bder == NULL)
-    {
-        _bder = new CBroadCaster;
-        _bder->create();
-    }
-    if (_notifier == NULL)
-    {
-        _notifier = new CNotifier;
-        _notifier->create();
-    }
-
     CAutoMutex du(_iolk);
     switch (_pstate)
     {
-    case st_idle:
-    case st_reading:
-        ret = doread(*_notifier, *_bder);
+    case iostIdle:
+    case iostReading:
+        ret = doread();
         break;
-    case st_sending:
+    case iostSending:
         ret = dosend();
         break;
-    case st_notifing:
+    case iostNotifing:
         ret = donotify();
         break;
     default:LOGW("this is impossibile. : )\n")
@@ -202,48 +192,34 @@ bool CClient::doWork()
     }
     else
     {
-        //io error, we take it as break line case.
+        //io error, we treat it as break line.
         //hold a strong reference to this.
         cli = _ctsk->client();
         CDataMgr & dmgr = CEngine::instance().dataMgr();
         leaveRoom();
 
         dmgr.delClient(uname());
-        _state = Offline;
+        _state = stOffline;
+        delete _ctsk;
+        _ctsk = NULL;
+
         LOGI("client cnt %d\n", dmgr.userCount());
         LOGV("msg count %d times.\n", CEngine::instance().counter().msgCount());
         //  LOGI("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
-        delete _ctsk;
-        _ctsk = NULL;
     }
 
-    LOGV("_psate = %s\n", strpstate());
-    // in case of this processing generate some broad cast message.
-    // we if broad cast msg is not empty, we assign it to threads poll.
-    // if is empty, we don't need delete it, we can use it in next ccni msg.
-    if (!_bder->empty())
-    {
-        CEngine::instance().threadsPool().assign(_bder);
-        _bder = NULL;
-    }
-
-    // in case of this processing generate some notification to other client.
-    if (!_notifier->empty())
-    {
-        CEngine::instance().threadsPool().assign(_notifier);
-        _notifier = NULL;
-    }
+    LOGV("_psate = %s\n", striostate());
 
     return ret;
 }
 
-bool CClient::queueNotification(CNotifyMsgBufPtr msg)
+bool CClient::queueNotification(CFlatMsgBufPtr msg)
 {
     CAutoMutex du(_iolk);
 
     _notimsgs.push_back(new CCNINotification(msg));
     //if we are in epoll waiting list, then remove it and  post a send request 
-    if (_pstate == st_idle)
+    if (_pstate == iostIdle)
     {
         rmFromEpoll();
         donotify();
@@ -257,63 +233,4 @@ bool CClient::queueNotification(CNotifyMsgBufPtr msg)
     return true;
 }
 
-void CClient::leaveRoom()
-{
-    CDataMgr & dmgr = CEngine::instance().dataMgr();
-    if (_roomid <= 0)
-    {
-        return;
-    }
-    CRoomPtr rm = dmgr.findRoom(_roomid);
 
-    if (rm != NULL)
-    {
-        if (!rm->leave(_ctsk->client(), *_bder))
-        {
-            LOGE("leave room error. bugs here.\n")
-        }
-    }
-    else
-    {
-        LOGE("error, leave room bugs here.\n")
-    }
-    _state = Online;
-    _roomid = -1;
-
-    CXmlMsg bdmsg;
-    if (!_bder->empty())
-    {
-        bdmsg.create(xmlTagBroadcastEnterRoom);
-        bdmsg.addParameter(xmlTagUserName, uname());
-        _bder->append(bdmsg);
-    }
-
-}
-int CClient::enterRoom(int rid)
-{
-    if (_state != Online || _ctsk == NULL)
-    {
-        return -1;
-    }
-    CDataMgr & dmgr = CEngine::instance().dataMgr();
-    CRoomPtr room = dmgr.findRoom(rid);
-    if (room == NULL)
-    {
-        return -2;
-    }
-
-    if (!room->enter(_ctsk->client(), *_bder))
-    {
-        return -3;
-    }
-    _state = Idle;
-    _roomid = rid;
-    if (!_bder->empty())
-    {
-        CXmlMsg bdmsg;
-        bdmsg.create(xmlTagBroadcastEnterRoom);
-        bdmsg.addParameter(xmlTagUserName, uname());
-        _bder->append(bdmsg);
-    }
-    return 0;
-}
