@@ -77,8 +77,8 @@ public:
     }
 };
 
-class CNotifyMsgBuf;
-typedef std::tr1::shared_ptr<CNotifyMsgBuf> CNotifyMsgBufPtr;
+class CFlatMsgBuf;
+typedef std::tr1::shared_ptr<CFlatMsgBuf> CFlatMsgBufPtr;
 //create ccni msg and write to net.
 class CCNIMsgPacker
 {
@@ -143,6 +143,11 @@ public:
     bool pack(uint32_t seq, uint32_t udata, const secret_key_t & k1, const secret_key_t & k2)
     {
         int len;
+        if (_data != NULL)
+        {
+            xmlFree(_data);
+            _data = NULL;
+        }
         _hd.seq = seq;
         _hd.udata = udata;
         _hd.secret1 = k1;
@@ -153,7 +158,7 @@ public:
         _state = st_sdhd;
         return (_data != NULL);
     }
-    CNotifyMsgBufPtr packNotification();
+    CFlatMsgBufPtr packToFlat();
 
     state_t send(int sock);
 
@@ -164,12 +169,12 @@ private:
     state_t _sendsdbd(int sock);
 };
 
-class CNotifyMsgBuf
+class CFlatMsgBuf
 {
 private:
     uint8_t * _data;
     int _len;
-    CNotifyMsgBuf(uint8_t * d, int l) :
+    CFlatMsgBuf(uint8_t * d, int l) :
         _data(d), _len(l)
     {
     }
@@ -184,21 +189,29 @@ public:
         return _len;
     }
 
-    ~CNotifyMsgBuf()
+    ~CFlatMsgBuf()
     {
         if (_data)
             delete []_data;
     }
 };
 
+
+//
+// CCNINotification is a wraper of CFlatMsgBuf.
+// It is self state maintained. used for send same FlatMsgBuf to multiple
+// CCNI clients. 
+// Since we are using the non-blocking IO, when sending notification to client,
+// we may need invoke multiple times of "send" which were triggered by Epoll.
+//
 class CCNINotification
 {
 
 private:
-    CNotifyMsgBufPtr _msg;
+    CFlatMsgBufPtr _msg;
     int _pos;
 public:
-    CCNINotification(CNotifyMsgBufPtr msg) :
+    CCNINotification(CFlatMsgBufPtr msg) :
         _msg(msg), _pos(0)
     {
     }

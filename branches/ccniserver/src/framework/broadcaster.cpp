@@ -43,7 +43,7 @@
 
 bool CBroadCaster::run()
 {
-    CNotifyMsgBufPtr bufptr = _msg.packNotification();
+    CFlatMsgBufPtr bufptr = _msg.packToFlat();
 
     if (bufptr->len() > 0)
     {

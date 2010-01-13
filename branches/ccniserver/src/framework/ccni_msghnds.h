@@ -43,7 +43,7 @@ typedef  int (CClient::*msghnd_t)(CXmlNode msg);
 struct hndtable_t
 {
     const char * label;
-   // state_t      validst; // tbd;
+    state_t      vstate; // valid state of this ccni message.
     msghnd_t     fun;
 };
 static hndtable_t msghnds[];
@@ -68,6 +68,5 @@ DECLARE_MSG_HANDLE(doGiveUp);
 DECLARE_MSG_HANDLE(doListRooms);
 DECLARE_MSG_HANDLE(doListSessions);
 DECLARE_MSG_HANDLE(doSendMessages);
-
-
+bool checkstate(CXmlNode msg, state_t vstate);
 #endif /*CCNI_MSGHNDS_H_*/
