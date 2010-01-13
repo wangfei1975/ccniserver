@@ -157,5 +157,6 @@ int main1(int argc, char * argv[])
     }
     msg.free();
     close(tcpfd);
+    return 0;
 }
 

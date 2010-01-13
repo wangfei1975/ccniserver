@@ -75,7 +75,7 @@ export  LIBS = -L/usr/lib -lpthread -lxml2 -lssl
 export DEBUG
 
 .PHONY : all
-all : DISPTITLE $(CCNI_SERVER) mkccni mklibccni_client
+all : DISPTITLE mklibccni_client $(CCNI_SERVER) mkccni
 
 $(CCNI_SERVER):mklibutils mklibccni mkdbi mkccniserver mkccnitool
 mkccniserver:
