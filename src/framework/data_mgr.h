@@ -59,7 +59,17 @@ private:
     room_list_t _rooms;
 
 public:
-
+    CXmlNode xmlRoomList()
+    {
+        CXmlNode nd;
+        nd.create(xmlTagRooms);
+        room_list_t::iterator it = _rooms.begin();
+        for (; it != _rooms.end(); ++it)
+        {
+            nd.addChild((it->second)->toXml());
+        }
+        return nd;
+    }
     int userCount()
     {
         CAutoMutex du(_listlk);

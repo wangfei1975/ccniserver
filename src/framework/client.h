@@ -144,7 +144,7 @@ public:
     CClient(int tcpfd, CUdpSockData * udp, const secret_key_t & k1, const secret_key_t & k2,
             const struct sockaddr_in & udpaddr, const CDataBase::CRecord & usr) :
         _state(stOnline), _tcpfd(tcpfd), _udp(udp), _k1(k1), _k2(k2), _udpaddr(udpaddr),
-                _usrinfo(usr), _pstate(iostIdle), _bder(NULL), _notifier(NULL), _ctsk(NULL),
+                _usrinfo(usr), _roomid(-1), _pstate(iostIdle), _bder(NULL), _notifier(NULL), _ctsk(NULL),
                 _epfd(-1)
     {
 

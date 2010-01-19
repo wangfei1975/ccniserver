@@ -38,14 +38,14 @@ OBJS     := $(SRCS:.cpp=.o)
 DEPENDS  := $(SRCS:.cpp=.d)
 
 
-TARGET = $(BIN_DIR)$(CCNI_SCLIENT) 
-LIBS   += $(BIN_DIR)$(CCNI_LIB).a $(BIN_DIR)$(UTILS_LIB).a $(BIN_DIR)$(DBI_LIB).a
+TARGET = $(BIN_DIR)$(CCNI_SCLIENT)
+LIBS   += $(BIN_DIR)$(CCNI_LIB).a $(BIN_DIR)$(UTILS_LIB).a $(BIN_DIR)$(LIBCCNICLIENT).a 
 #LIBS += $(BIN_DIR)$(UTILS_LIB).a
 
 .PHONY : all
 all : $(TARGET) 
 
-$(TARGET): $(OBJS) $(DEPENDS)
+$(TARGET): $(OBJS) $(DEPENDS) $(BIN_DIR)$(LIBCCNICLIENT).a
 	echo $(LD) -o $(TARGET) $(LD_FLAG) $(OBJS) $(LIBS) 
 	$(LD) -o $(TARGET) $(LD_FLAG) $(OBJS) $(LIBS)
 

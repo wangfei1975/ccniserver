@@ -335,6 +335,7 @@ public:
     {
         return _hd;
     }
+    
 private:
 
     state_t _readRdhd(int sock);

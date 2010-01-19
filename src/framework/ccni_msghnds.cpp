@@ -302,6 +302,15 @@ IMPL_MSG_HANDLE(doGiveUp)
 }
 IMPL_MSG_HANDLE(doListRooms)
 {
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+
+    CXmlMsg lgmsg; lgmsg.create(xmlTagListRoomsRes);
+
+    lgmsg.addParameter(xmlTagReturnCode, 0);
+    lgmsg.addChild(dmgr.xmlRoomList());
+
+    _resmsg.appendmsg(lgmsg);
+
     return 0;
 }
 

@@ -96,7 +96,7 @@ public:
 
     CXmlNode findChild(const char * name) const;
     std::string & toString(std::string & strXml);
-
+    std::string toString(){std::string v; return toString(v);}
 public:
     CXmlNode child() const
     {
