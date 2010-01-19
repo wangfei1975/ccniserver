@@ -144,7 +144,10 @@
 #define xmlTagCCNIVersion               "CCNIVersion"
 #define xmlTagRes                       "Res"
 
-
+#define xmlTagRooms                      "Rooms"
+#define xmlTagRoom                      "Room"
+#define xmlTagCapacity                   "Capacity"
+#define xmlTagUserCount                  "UserCount"
 #define xmlTagId                       "Id"
  
 

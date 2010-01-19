@@ -59,7 +59,16 @@ public:
     {
 
     }
-    
+    CXmlNode toXml()
+    {
+        CXmlMsg nd;
+        nd.create(xmlTagRoom);
+        nd.addParameter(xmlTagCapacity, capacity());
+        nd.addParameter(xmlTagUserCount, _usrlist.size());
+        nd.addParameter(xmlTagDescription, description());
+        nd.addParameter(xmlTagId, id());
+        return nd;
+    }
     unsigned int capacity()
     {
         return _cfg.capacity;
