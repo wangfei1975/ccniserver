@@ -130,7 +130,7 @@ bool CClient::donotify()
 {
     if (_notimsgs.empty())
     {
-        LOGV("empty notify message queue.");
+        LOGV("empty notify message queue.\n");
         _pstate = iostIdle;
         //
         //we don't return false,since we want next reading.
@@ -195,12 +195,23 @@ bool CClient::doWork()
         //io error, we treat it as break line.
         //hold a strong reference to this.
         cli = _ctsk->client();
-        CDataMgr & dmgr = CEngine::instance().dataMgr();
+        if (_bder == NULL)
+        {
+            _bder = new CBroadCaster;
+            _bder->create();
+        }
+        if (_notifier == NULL)
+        {
+            _notifier = new CNotifier;
+            _notifier->create();
+        }
         leaveRoom();
-
+        CDataMgr & dmgr = CEngine::instance().dataMgr();
         dmgr.delClient(uname());
+        LOGV("delete from dmgr ok.\n")
         _state = stOffline;
         delete _ctsk;
+        LOGV("delete _ctsk ok.\n")
         _ctsk = NULL;
 
         LOGI("client cnt %d\n", dmgr.userCount());
@@ -208,6 +219,22 @@ bool CClient::doWork()
         //  LOGI("thread pool status %d\n", CEngine::instance().threadsPool().getBusyCount());
     }
 
+    // if broadcast msg is not empty, we assign it to threads poll.
+    // if is empty, we don't need delete it, we can use it in next loop or next ccni message
+    if (_bder && !_bder->empty())
+    {
+        LOGV("broadcaster is not emtpy\n")
+        CEngine::instance().threadsPool().assign(_bder);
+        _bder = NULL;
+    }
+
+    // in case of this processing generate some notification to other clients.
+    if (_notifier && !_notifier->empty())
+    {
+        LOGV("notifier is not emtpy\n")
+        CEngine::instance().threadsPool().assign(_notifier);
+        _notifier = NULL;
+    }
     LOGV("_psate = %s\n", striostate());
 
     return ret;
@@ -232,5 +259,4 @@ bool CClient::queueNotification(CFlatMsgBufPtr msg)
     }
     return true;
 }
-
 

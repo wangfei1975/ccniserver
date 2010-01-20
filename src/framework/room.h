@@ -44,29 +44,127 @@
 #include "client.h"
 #include "log.h"
 #include "broadcaster.h"
+class CSessionConfig
+{
+public:
+    string des;
+    string fen;
+    int red;
+    int innings;
+    int rule;
+    int totalTime;
+    int stepTime;
+    int bonusPerStep;
+    int requiredScore;
+    int ante;
+    int watcherCount;
+};
+class CSession
+{
+public:
+
+private:
+    int _id;
+    CSessionConfig _cfg;
+    CClientPtr _owner, _opponent;
+
+    set <CClientPtr> _watchers;
+    CMutex _lk;
+    
+    static int genid()
+    {
+        static int idseed = 0;
+        idseed = (idseed + 1)% 20000;
+        return  (idseed+1);
+    }
+public:
+    CSession(CClientPtr ow, const CSessionConfig & cfg) :
+        _cfg(cfg), _owner(ow)
+    {
+        _id = genid();
+    }
+    
+    uint32_t id()
+    {
+        return _id;
+    }
+    //   < 0 error
+    //   >=0 clients number in session 
+    int leave(CClientPtr c, CNotifier & notier);
+    int enter(CClientPtr c, CNotifier & notier);
+    CXmlNode toXml()
+    {
+        CXmlMsg nd;
+        nd.create(xmlTagSession);
+        nd.addParameter(xmlTagId, id());
+        nd.addParameter(xmlTagDescription, _cfg.des.c_str());
+        nd.addParameter(xmlTagFen, _cfg.fen.c_str());
+        nd.addParameter(xmlTagRed, _cfg.red);
+        nd.addParameter(xmlTagInnings, _cfg.innings);
+        nd.addParameter(xmlTagRule, _cfg.rule);
+        nd.addParameter(xmlTagTotalTime, _cfg.totalTime);
+        nd.addParameter(xmlTagStepTime, _cfg.stepTime);
+        nd.addParameter(xmlTagBonusPerStep, _cfg.bonusPerStep);
+        nd.addParameter(xmlTagRequiredScore, _cfg.requiredScore);
+        nd.addParameter(xmlTagAnte, _cfg.ante);
+        nd.addParameter(xmlTagMaxWatcherCount, _cfg.watcherCount);
+        CAutoMutex du(_lk);
+        if (_owner != NULL)
+        {
+            nd.addParameter(xmlTagOwner, _owner->uname());
+        }
+        if (_opponent != NULL)
+        {
+            nd.addParameter(xmlTagOpponent, _opponent->uname());
+        }
+        CXmlMsg wt;
+        wt.create(xmlTagWatchers);
+        set <CClientPtr>::iterator it;
+        for (it = _watchers.begin(); it != _watchers.end(); ++it)
+        {
+            wt.addParameter(xmlTagUserName, (*it)->uname());
+        }
+        nd.addChild(wt);
+        return nd;
+    }
+};
+typedef std::tr1::shared_ptr<CSession> CSessionPtr;
 
 class CRoom
 {
 public:
-    typedef set <CClientPtr> usr_list_t;
+    typedef set<CClientPtr> usr_list_t;
+    typedef map<uint32_t, CSessionPtr> session_list_t;
 private:
     const CRoomConfig & _cfg;
     CMutex _lk;
     usr_list_t _usrlist;
+
+    CMutex _slk;
+    session_list_t _sessions;
 public:
     CRoom(const CRoomConfig & cfg) :
         _cfg(cfg)
     {
 
     }
+    CSessionPtr createSession(CClientPtr c, const CSessionConfig & cfg, CBroadCaster & bd);
+    bool leaveSession(int sid, CClientPtr c, CNotifier & noti, CBroadCaster & bd);
+    //
+    // ret -2 error session id
+    //     -3 session full
+    int  enterSession(uint32_t sid, CClientPtr c, CNotifier & noti);
+    
+    
     CXmlNode toXml()
     {
         CXmlMsg nd;
         nd.create(xmlTagRoom);
         nd.addParameter(xmlTagCapacity, capacity());
-        nd.addParameter(xmlTagUserCount, _usrlist.size());
         nd.addParameter(xmlTagDescription, description());
         nd.addParameter(xmlTagId, id());
+        CAutoMutex dumy(_lk);
+        nd.addParameter(xmlTagUserCount, _usrlist.size());
         return nd;
     }
     unsigned int capacity()
@@ -80,6 +178,12 @@ public:
     const char * description()
     {
         return _cfg.description.c_str();
+    }
+
+    bool inroom(CClientPtr c)
+    {
+        CAutoMutex dumy(_lk);
+        return ( _usrlist.find(c) != _usrlist.end());
     }
 
     bool enter(CClientPtr c, CBroadCaster & bd);

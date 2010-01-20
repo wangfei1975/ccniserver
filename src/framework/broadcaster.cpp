@@ -48,6 +48,7 @@ bool CBroadCaster::run()
     if (bufptr->len() > 0)
     {
         broadcast_t::iterator it;
+        LOGV("broadcase msg:\n%s\n", bufptr->data()+sizeof(CCNI_HEADER));
         for (it = _broadcaster.begin(); it != _broadcaster.end(); ++it)
         {
             addr_list_t * lst =  (it->second);
@@ -56,10 +57,16 @@ bool CBroadCaster::run()
 
             for (addrit = lst->begin(); addrit != lst->end(); ++addrit)
             {
-                if (!sock->sendto(bufptr->data(), bufptr->len(), &(*addrit), sizeof(*addrit)))
+                if (!sock->sendto(bufptr->data(), sizeof(CCNI_HEADER), &(*addrit), sizeof(*addrit)))
+                {
+                    LOGW("broad cast header send to error  %s.\n", strerror(errno));
+                    continue;
+                }
+                if (!sock->sendto(bufptr->data()+sizeof(CCNI_HEADER), bufptr->len()-sizeof(CCNI_HEADER), &(*addrit), sizeof(*addrit)))
                 {
                     LOGW("broad cast send to error  %s.\n", strerror(errno));
                 }
+                LOGV("send to %s success.\n",  inet_ntoa((*addrit).sin_addr));
             }
         }
     }

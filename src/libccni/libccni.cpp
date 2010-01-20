@@ -105,30 +105,34 @@ bool CCNIConnection::connect(const char * serverip, int tport, int uport)
         disconnect();
         return false;
     }
+    _connected = true;
     return true;
 }
 
 void CCNIConnection::disconnect()
 {
-    if (_tcpsock >= 0)
+    if (_connected)
     {
-        close(_tcpsock);
-        _tcpsock = -1;
-    }
-    if (_udpsock >= 0)
-    {
-        close(_udpsock);
-        _udpsock = -1;
-    }
+        if (_tcpsock >= 0)
+        {
+            close(_tcpsock);
+            _tcpsock = -1;
+        }
+        if (_udpsock >= 0)
+        {
+            close(_udpsock);
+            _udpsock = -1;
+        }
 
-    event_lst_t::iterator it;
-    for (it = _evts.begin(); it != _evts.end(); ++it)
-    {
-        delete (it->second);
+        event_lst_t::iterator it;
+        for (it = _evts.begin(); it != _evts.end(); ++it)
+        {
+            delete (it->second);
+        }
+
+        _evts.clear();
+        _connected = false;
     }
-
-    _evts.clear();
-
 }
 #define PrepareCCNIMsg()  uint32_t seq = (uint32_t)pthread_self(); \
         CCNIMsgPacker msg; msg.create(); \
@@ -150,6 +154,7 @@ void CCNIConnection::disconnect()
        if (rgmsg.isEmpty()) \
        {\
            _lasterr = "received error msg"; LOGE("%s\n", _lasterr.c_str());\
+           delete rmsg; \
           return -2; \
        }
 
@@ -171,12 +176,28 @@ int CCNIConnection::login(const char * uname, const char * pwd)
     if (rcode != 0)
     {
         string v;
-        lgmsg.findChild(xmlTagDescription).getContent(v);
+        rgmsg.findChild(xmlTagDescription).getContent(v);
         LOGE("login error: %s\n", v.c_str());
         _lasterr = v;
+        delete rmsg;
         return rcode - 3;
     }
     LOGD("login success.\n");
+    delete rmsg;
+    return 0;
+}
+int CCNIConnection::logout()
+{
+    PrepareCCNIMsg()
+
+    CXmlMsg lgmsg;
+    lgmsg.create(xmlTagLogout);
+    lgmsg.addParameter(xmlTagUserName, _uname.c_str());
+    lgmsg.addParameter(xmlTagPassword, _passwd.c_str());
+
+    msg.appendmsg(lgmsg);
+
+    SendMsgAndWaitRes(xmlTagLogoutRes)
     delete rmsg;
     return 0;
 }
@@ -239,7 +260,7 @@ int CCNIConnection::state()
     }
 
     delete rmsg;
-    return tab[i].msk;
+    return (_state = tab[i].msk);
 
 }
 int CCNIConnection::listrooms(room_lst_t & lst)
@@ -255,7 +276,7 @@ int CCNIConnection::listrooms(room_lst_t & lst)
 
     lst.clear();
     CXmlNode rooms = rgmsg.findChild(xmlTagRooms);
- 
+
     for (CXmlNode nd = rooms.child() ; !nd.isEmpty(); nd = nd.next())
     {
         if (nd.type() != XML_ELEMENT_NODE)
@@ -264,7 +285,7 @@ int CCNIConnection::listrooms(room_lst_t & lst)
         }
         if (strcmp(nd.name(), xmlTagRoom) == 0)
         {
-            CRoom r; 
+            CRoom r;
             r.id = nd.findChild(xmlTagId).getIntContent();
             r.capacity = nd.findChild(xmlTagCapacity).getIntContent();
             r.usrcount = nd.findChild(xmlTagUserCount).getIntContent();
@@ -274,15 +295,35 @@ int CCNIConnection::listrooms(room_lst_t & lst)
             lst.push_back(r);
         }
     }
+    delete rmsg;
     return lst.size();
-}
-int CCNIConnection::logout()
-{
-    return 0;
 }
 
 int CCNIConnection::enterroom(int roomid)
 {
+    PrepareCCNIMsg()
+
+    CXmlMsg lgmsg;
+    lgmsg.create(xmlTagEnterRoom);
+    lgmsg.addParameter(xmlTagId, roomid);
+
+    msg.appendmsg(lgmsg);
+
+    SendMsgAndWaitRes(xmlTagEnterRoomRes)
+
+    int rcode = rgmsg.findChild(xmlTagReturnCode).getIntContent();
+
+    if (rcode != 0)
+    {
+        string v;
+        rgmsg.findChild(xmlTagDescription).getContent(v);
+        LOGE("enter room error: %s\n", v.c_str());
+        _lasterr = v;
+        delete rmsg;
+        return rcode - 3;
+    }
+
+    delete rmsg;
     return 0;
 }
 int CCNIConnection::leaveroom()
@@ -320,15 +361,19 @@ void CCNIConnection::doServerMessage(int sock)
 {
     LOGV("read server mesage\n");
     CCNIMsgParser * pmsg = new CCNIMsgParser;
-    CCNIMsgParser::state_t st = pmsg->read(sock);
+    CCNIMsgParser::state_t st;
+
+    st = pmsg->read(sock);
+
     while (st == CCNIMsgParser::st_rdhd || st == CCNIMsgParser::st_rdbd)
     {
         LOGD("read eagain\n");
         st = pmsg->read(sock);
+
     }
     if (st != CCNIMsgParser::st_rdok)
     {
-        LOGE("read error discard.\n");
+        LOGE("read error discard %d.\n", st);
         return;
     }
     if (!pmsg->parse())
@@ -361,7 +406,7 @@ void CCNIConnection::doWork()
     fd_set rfds;
     struct timeval tv;
     LOGV("select udp:%d, tcp:%d\n", _udpsock, _tcpsock);
-    tv.tv_sec = 3;
+    tv.tv_sec = 5;
     tv.tv_usec = 0;
     while (1)
     {
@@ -369,7 +414,7 @@ void CCNIConnection::doWork()
         FD_SET(_udpsock, &rfds);
         FD_SET(_tcpsock, &rfds);
         int n = _udpsock> _tcpsock ? _udpsock : _tcpsock;
-        LOGV("select udp:%d, tcp:%d\n", _udpsock, _tcpsock);
+        //LOGV("select udp:%d, tcp:%d\n", _udpsock, _tcpsock);
         if (select(n+1, &rfds, NULL, NULL, &tv) == -1)
         {
             if (errno == EBADF)
@@ -381,15 +426,17 @@ void CCNIConnection::doWork()
         }
         else if (FD_ISSET(_udpsock, &rfds))
         {
+            LOGD("udp sock has something.\n");
             doServerMessage(_udpsock);
         }
         else if (FD_ISSET(_tcpsock, &rfds))
         {
+            LOGD("tcp sock has something.\n");
             doServerMessage(_tcpsock);
         }
         else
         {
-            LOGV("select time out, continue.\n");
+            // LOGV("select time out, continue.\n");
         }
     }
 }

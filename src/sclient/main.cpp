@@ -39,11 +39,19 @@ int main(int argc, char * argv[])
         return 0;
     }
     printf("connect success.\n");
-
-    con.login("bjwf", "12345");
+    
+    char uname[256];
+    sprintf(uname, "bjwf%u", (unsigned int)pthread_self());
+    con.login(uname, "12345");
     con.ccni(ccniInfo);
     con.state();
     con.listrooms(rooms);
+    con.enterroom(1);
+    
+    while(1)
+    {
+        sleep(1);
+    }
     // con.ccni();
     return 0;
 }
