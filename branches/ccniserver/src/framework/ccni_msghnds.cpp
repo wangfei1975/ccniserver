@@ -38,6 +38,7 @@
 /***************************************************************************************/
 
 #include "client.h"
+#include "room.h"
 #include "engine.h"
 #include "broadcaster.h"
 #include "notifier.h"
@@ -53,6 +54,7 @@ CClient::hndtable_t CClient::msghnds[] =
 { xmlTagLeaveRoom, stIdle, &CClient::doLeaveRoom },
 { xmlTagNewSession, stIdle, &CClient::doNewSession },
 { xmlTagEnterSession, stIdle, &CClient::doEnterSession },
+{ xmlTagLeaveSession, stInSession, &CClient::doLeaveSession },
 { xmlTagWatchSession, stIdle, &CClient::doWatchSession },
 { xmlTagReady, stSessional, &CClient::doReady },
 { xmlTagMove, stMoving, &CClient::doMove },
@@ -125,6 +127,7 @@ void CClient::procMsgs(CCNIMsgParser & pmsg)
         // if is empty, we don't need delete it, we can use it in next loop or next ccni message
         if (!_bder->empty())
         {
+            LOGV("broadcaster is not emtpy\n")
             CEngine::instance().threadsPool().assign(_bder);
             _bder = NULL;
         }
@@ -132,6 +135,7 @@ void CClient::procMsgs(CCNIMsgParser & pmsg)
         // in case of this processing generate some notification to other clients.
         if (!_notifier->empty())
         {
+            LOGV("notifier is not emtpy\n")
             CEngine::instance().threadsPool().assign(_notifier);
             _notifier = NULL;
         }
@@ -161,40 +165,35 @@ void CClient::procMsgs(CCNIMsgParser & pmsg)
                                      lgmsg.addParameter(xmlTagReturnCode, rcode); \
                                      lgmsg.addParameter(xmlTagDescription, des);\
                                      _resmsg.appendmsg(lgmsg);  \
-                                     LOGV(" out %d\n", rcode);  \
+                                     LOGV("out:ret code=%d,des=%s\n", rcode, des);  \
                                      return rcode;}
 
 void CClient::leaveRoom()
 {
     CDataMgr & dmgr = CEngine::instance().dataMgr();
-    if (_roomid <= 0)
-    {
-        return;
-    }
     CRoomPtr rm = dmgr.findRoom(_roomid);
+    ASSERT(rm != NULL);
 
-    if (rm != NULL)
+    LOGV("%s leave room %d start\n", uname(), _roomid);
+
+    if (!rm->leave(_ctsk->client(), *_bder))
     {
-        if (!rm->leave(_ctsk->client(), *_bder))
-        {
-            LOGE("leave room error. bugs here.\n")
-        }
+        ASSERT(false);
     }
-    else
-    {
-        LOGE("error, leave room bugs here.\n")
-    }
+
+    LOGV("%s leave room %d ok\n", uname(), _roomid);
     _state = stOnline;
     _roomid = -1;
 
     CXmlMsg bdmsg;
     if (!_bder->empty())
     {
-        bdmsg.create(xmlTagBroadcastEnterRoom);
+        LOGV("leave room broadcast.\n");
+        bdmsg.create(xmlTagBroadcastLeaveRoom);
         bdmsg.addParameter(xmlTagUserName, uname());
         _bder->append(bdmsg);
     }
-
+    LOGV("%s leave room %d ok ok\n", uname(), _roomid);
 }
 int CClient::enterRoom(int rid)
 {
@@ -217,6 +216,7 @@ int CClient::enterRoom(int rid)
     _roomid = rid;
     if (!_bder->empty())
     {
+        LOGV("enter room broadcast.\n");
         CXmlMsg bdmsg;
         bdmsg.create(xmlTagBroadcastEnterRoom);
         bdmsg.addParameter(xmlTagUserName, uname());
@@ -224,7 +224,86 @@ int CClient::enterRoom(int rid)
     }
     return 0;
 }
+int CClient::createSession(const CSessionConfig & cfg)
+{
+    ASSERT (_state == stIdle && _ctsk != NULL && _roomid> 0);
 
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    CRoomPtr room = dmgr.findRoom(_roomid);
+    ASSERT(room != NULL);
+
+    CSessionPtr s = room->createSession(_ctsk->client(), cfg, *_bder);
+    if (s == NULL)
+    {
+        LOGE("create session error.\n")
+        return -2;
+    }
+    _state = stSessional;
+    _sessionid = s->id();
+    if (!_bder->empty())
+    {
+        LOGV("enter room broadcast.\n");
+        CXmlMsg bdmsg;
+        bdmsg.create(xmlTagBroadcastNewSession);
+        bdmsg.addChild(s->toXml());
+        _bder->append(bdmsg);
+    }
+    return 0;
+}
+int CClient::leaveSession()
+{
+    ASSERT ((_ctsk != NULL && _roomid> 0 && _sessionid> 0));
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    CRoomPtr room = dmgr.findRoom(_roomid);
+    ASSERT(room != NULL);
+    room->leaveSession(_sessionid, _ctsk->client(), *_notifier, *_bder);
+    int sid = _sessionid;
+    _state = stIdle;
+    _sessionid = -1;
+
+    if (!_bder->empty())
+    {
+        LOGV("broadcast.\n");
+        CXmlMsg bdmsg;
+        bdmsg.create(xmlTagBroadcastDelSession);
+        bdmsg.addParameter(xmlTagId, sid);
+        _bder->append(bdmsg);
+    }
+    if (!_notifier->empty())
+    {
+        LOGV("notification.\n");
+
+        CXmlMsg bdmsg;
+        bdmsg.create(xmlTagNotifyLeaveSession);
+        bdmsg.addParameter(xmlTagUserName, uname());
+        _notifier->append(bdmsg);
+    }
+    return 0;
+}
+int CClient::enterSession(int sid)
+{
+    ASSERT ((_ctsk != NULL && _roomid> 0 && _sessionid < 0));
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    CRoomPtr room = dmgr.findRoom(_roomid);
+    ASSERT(room != NULL);
+    int ret = room->enterSession(sid, _ctsk->client(), *_notifier);
+    if (ret < 0)
+    {
+        LOGE("enter session error.\n");
+        return ret;
+    }
+    _state = stSessional;
+    _sessionid = sid;
+    if (!_notifier->empty())
+    {
+        LOGV("notification.\n");
+        CXmlMsg bdmsg;
+        bdmsg.create(xmlTagNotifyEnterSession);
+        bdmsg.addParameter(xmlTagUserName, uname());
+        _notifier->append(bdmsg);
+    }
+    return 0;
+}
 IMPL_MSG_HANDLE(doEnterRoom)
 {
     LOGV("in\n");
@@ -253,26 +332,52 @@ IMPL_MSG_HANDLE(doLeaveRoom)
 {
     LOGV("in\n");
 
-    if (_roomid < 0)
-    {
-        doreturn(xmlTagLeaveRoomRes, -1, "user state error");
-    }
-
-    if (_roomid> 0)
-    {
-        leaveRoom();
-    }
+    ASSERT(_roomid> 0);
+    leaveRoom();
 
     doreturn(xmlTagLeaveRoomRes, 0, "leave room success");
 }
 
 IMPL_MSG_HANDLE(doNewSession)
 {
+    LOGV("in\n");
+
+    CSessionConfig cfg;
+    int ret = createSession(cfg);
+    if (ret == -1)
+    {
+        doreturn(xmlTagNewSessionRes, -1, "user state error");
+    }
+    else if (ret == -2)
+    {
+        doreturn(xmlTagNewSessionRes, -2, "error session parameter");
+    }
+
+    doreturn(xmlTagNewSessionRes, 0, "create session success");
     return 0;
 }
 
 IMPL_MSG_HANDLE(doEnterSession)
 {
+    LOGV("in\n");
+    int sessionid = msg.findChild(xmlTagId).getIntContent();
+    int ret = enterSession(sessionid);
+    if (ret == -2)
+    {
+        doreturn(xmlTagEnterSessionRes, -2, "error session id");
+    }
+    else if (ret == -3)
+    {
+        doreturn(xmlTagEnterSessionRes, -3, "session full");
+    }
+    doreturn(xmlTagEnterSessionRes, 0, "enter session success");
+    return 0;
+}
+
+IMPL_MSG_HANDLE(doLeaveSession)
+{
+    leaveSession();
+    doreturn(xmlTagLeaveSessionRes, 0, "leave session success");
     return 0;
 }
 

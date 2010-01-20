@@ -331,6 +331,7 @@ public:
         return _state;
     }
     state_t read(int sock);
+  //  state_t readudp(int sock);
     const CCNI_HEADER & header()
     {
         return _hd;

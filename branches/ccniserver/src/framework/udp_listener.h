@@ -58,7 +58,7 @@ public:
     {
         CAutoMutex dumy(lk);
 
-        if (::sendto(fd, buf, len, 0, (struct sockaddr *)addr, addrlen) < 0)
+        if (::sendto(fd, buf, len, 0, (struct sockaddr *)addr, addrlen) != (ssize_t)len)
         {
             return false;
         }

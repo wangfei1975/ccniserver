@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -41,7 +41,7 @@
 
 CFlatMsgBufPtr CCNIMsgPacker::packToFlat()
 {
-    if (!pack(0,0,0,0))
+    if (!pack(0, 0, 0, 0))
     {
         CFlatMsgBufPtr m;
         return m;
@@ -134,7 +134,39 @@ CCNIMsgParser::state_t CCNIMsgParser::read(int sock)
     }
     return _state;
 }
-
+/*
+CCNIMsgParser::state_t CCNIMsgParser::readudp(int sock)
+{
+    struct sockaddr_in addr;
+    socklen_t flen = (socklen_t)sizeof(struct sockaddr);
+    ssize_t len;
+   // if ((len = recvfrom(sock, &_hd, sizeof(CCNI_HEADER), 0, (struct sockaddr *)&(addr), &flen))
+         //   != sizeof(_hd))
+    if ((len = ::read(sock, &_hd, sizeof(_hd))) != sizeof(_hd))
+    {
+        LOGW("receive ccni header error, discard!\n");
+        return (_state = st_hderror);
+    }
+    LOGV("read header ok.\n");
+    if (!_hd.verify())
+    {
+        LOGW("not valid ccni connect req header, discard.\n");
+        return (_state = st_hderror);
+    }
+    
+    _data = new char[_hd.datalen+1];
+    _pos = 0;
+    _state = st_rdbd;
+     LOGV("reading boday.\n");
+    if ((len = ::read(sock, _data, _hd.datalen)) != _hd.datalen)
+    {
+        LOGW("receive ccni body error, discard!\n");
+        return (_state = st_rderror);
+    }
+    _data[_hd.datalen] = 0;
+    return (_state = st_rdok);
+}
+*/
 CCNIMsgParser::state_t CCNIMsgParser::_readRdhd(int sock)
 {
     uint8_t * buf = (uint8_t *)&_hd;

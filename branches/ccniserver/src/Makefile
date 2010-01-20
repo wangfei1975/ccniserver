@@ -47,7 +47,7 @@ endif
 
 ifeq ($(DEBUG), true) 
     ifndef ($(LOG_LEVEL))
-        LOG_LEVEL = 3 
+        LOG_LEVEL = 5 
     endif
 else
     ifndef ($(LOG_LEVEL))

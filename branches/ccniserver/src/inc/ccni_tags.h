@@ -48,6 +48,7 @@
 #define xmlTagNewSession                "NewSession"
 #define xmlTagNewSessionRes             "NewSessionRes"
 #define xmlTagBroadcastNewSession       "BroadcastNewSession"
+#define xmlTagBroadcastDelSession       "BroadcastDelSession"
 
 #define xmlTagEnterSession              "EnterSession"
 #define xmlTagEnterSessionRes           "EnterSessionRes"
@@ -108,12 +109,8 @@
 #define xmlTagReturnInfo                "ReturnInfo"
 
 #define xmlTagCount                     "Count"
-#define xmlTagSessionList               "SessionList"
+#define xmlTagSessionS                  "SessionS"
 #define xmlTagSession                   "Session"
-#define xmlTagSessionDescription        "SessionDescription"
-#define xmlTagSessionInformation        "SessionInformation"
-#define xmlTagSessionID                 "SessionID"
-#define xmlTagTitle                     "Title"
 #define xmlTagFen                       "Fen"
 #define xmlTagRed                       "Red"
 #define xmlTagInnings                   "Innings"
@@ -124,9 +121,9 @@
 #define xmlTagRequiredScore             "RequiredScore"
 #define xmlTagAnte                      "Ante"                 //每局额外的赌注分
 #define xmlTagMaxWatcherCount           "MaxWatcherCount"
-#define xmlTagRedPlayer                 "RedPlayer"
-#define xmlTagBlackPlayer               "BlackPlayer"
-#define xmlTagWatcherList               "WatcherList"
+#define xmlTagOwner                     "Owner"
+#define xmlTagOpponent                  "Opponent"
+#define xmlTagWatchers                  "Watchers"
 #define xmlTagStep                      "Step"
 #define xmlTagTimeStamp                 "TimeStamp"
 
