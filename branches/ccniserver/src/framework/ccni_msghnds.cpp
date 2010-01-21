@@ -54,14 +54,14 @@ CClient::hndtable_t CClient::msghnds[] =
 { xmlTagLeaveRoom, stIdle, &CClient::doLeaveRoom },
 { xmlTagNewSession, stIdle, &CClient::doNewSession },
 { xmlTagEnterSession, stIdle, &CClient::doEnterSession },
-{ xmlTagLeaveSession, stInSession, &CClient::doLeaveSession },
+{ xmlTagLeaveSession, stSessional|stWatching, &CClient::doLeaveSession },
 { xmlTagWatchSession, stIdle, &CClient::doWatchSession },
 { xmlTagReady, stSessional, &CClient::doReady },
 { xmlTagMove, stMoving, &CClient::doMove },
 { xmlTagDraw, stPlaying, &CClient::doDraw },
 { xmlTagGiveUp, stPlaying, &CClient::doGiveUp },
-{ xmlTagListRooms, stOnline, &CClient::doListRooms },
-{ xmlTagListSessions, stIdle, &CClient::doListSessions },
+{ xmlTagListRooms, stConnected, &CClient::doListRooms },
+{ xmlTagListSessions, stInRoom, &CClient::doListSessions },
 { xmlTagSendMessage, stConnected, &CClient::doSendMessages },
 { NULL, stConnected, &CClient::doUnknow } };
 
@@ -280,6 +280,30 @@ int CClient::leaveSession()
     }
     return 0;
 }
+int CClient::watchSession(int sid)
+{
+    ASSERT ((_ctsk != NULL && _roomid> 0 && _sessionid < 0));
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    CRoomPtr room = dmgr.findRoom(_roomid);
+    ASSERT(room != NULL);
+    int ret = room->watchSession(sid, _ctsk->client(), *_notifier);
+    if (ret < 0)
+    {
+        LOGE("watch session error.\n");
+        return ret;
+    }
+    _state = stWatching;
+    _sessionid = sid;
+    if (!_notifier->empty())
+    {
+        LOGV("notification.\n");
+        CXmlMsg bdmsg;
+        bdmsg.create(xmlTagNotifyWatchSession);
+        bdmsg.addParameter(xmlTagUserName, uname());
+        _notifier->append(bdmsg);
+    }
+    return 0;
+}
 int CClient::enterSession(int sid)
 {
     ASSERT ((_ctsk != NULL && _roomid> 0 && _sessionid < 0));
@@ -353,10 +377,36 @@ IMPL_MSG_HANDLE(doNewSession)
         doreturn(xmlTagNewSessionRes, -2, "error session parameter");
     }
 
-    doreturn(xmlTagNewSessionRes, 0, "create session success");
+    CXmlMsg lgmsg, nds;
+    nds.create(xmlTagSession);
+    nds.addParameter(xmlTagId, _sessionid);
+    lgmsg.create(xmlTagNewSessionRes);
+    lgmsg.addParameter(xmlTagReturnCode, 0);
+    lgmsg.addParameter(xmlTagDescription, "create session success");
+    lgmsg.addChild(nds);
+    _resmsg.appendmsg(lgmsg);
+
+    //doreturn(xmlTagNewSessionRes, 0, "create session success");
     return 0;
 }
+IMPL_MSG_HANDLE(doListSessions)
+{
+    LOGV("in\n");
 
+    ASSERT(_roomid> 0);
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    CRoomPtr room = dmgr.findRoom(_roomid);
+    ASSERT(room != NULL);
+
+    CXmlMsg lgmsg;
+    lgmsg.create(xmlTagListSessionsRes);
+    lgmsg.addParameter(xmlTagReturnCode, 0);
+    lgmsg.addChild(room->xmlSessionList());
+
+    _resmsg.appendmsg(lgmsg);
+
+    return 0;
+}
 IMPL_MSG_HANDLE(doEnterSession)
 {
     LOGV("in\n");
@@ -383,6 +433,18 @@ IMPL_MSG_HANDLE(doLeaveSession)
 
 IMPL_MSG_HANDLE(doWatchSession)
 {
+    LOGV("in\n");
+    int sessionid = msg.findChild(xmlTagId).getIntContent();
+    int ret = watchSession(sessionid);
+    if (ret == -2)
+    {
+        doreturn(xmlTagEnterSessionRes, -2, "error session id");
+    }
+    else if (ret == -3)
+    {
+        doreturn(xmlTagEnterSessionRes, -3, "session full");
+    }
+    doreturn(xmlTagEnterSessionRes, 0, "watch session success");
     return 0;
 }
 
@@ -419,11 +481,6 @@ IMPL_MSG_HANDLE(doListRooms)
     return 0;
 }
 
-IMPL_MSG_HANDLE(doListSessions)
-{
-    return 0;
-}
-
 IMPL_MSG_HANDLE(doSendMessages)
 {
     return 0;
@@ -442,6 +499,7 @@ IMPL_MSG_HANDLE(doCCNI)
     // LOGV("enter\n");
     CXmlMsg lgmsg, svrinfo;
     lgmsg.create(xmlTagCCNIRes);
+    lgmsg.addParameter(xmlTagReturnCode, 0);
     svrinfo.create(xmlTagSeriverInformation);
 
     svrinfo.addParameter(xmlTagServerType, "CCNIServer");
@@ -457,6 +515,7 @@ IMPL_MSG_HANDLE(doMyState)
 {
     CXmlMsg lgmsg;
     lgmsg.create(xmlTagMyStateRes);
+    lgmsg.addParameter(xmlTagReturnCode, 0);
     lgmsg.addParameter(xmlTagState, strstate());
     _resmsg.appendmsg(lgmsg);
     return 0;

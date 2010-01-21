@@ -113,6 +113,7 @@ void CCNIConnection::disconnect()
 {
     if (_connected)
     {
+        LOGD("disconnect.\n")
         if (_tcpsock >= 0)
         {
             close(_tcpsock);
@@ -134,16 +135,18 @@ void CCNIConnection::disconnect()
         _connected = false;
     }
 }
-#define PrepareCCNIMsg()  uint32_t seq = (uint32_t)pthread_self(); \
+#define PrepareCCNIMsg(tag)  uint32_t seq = (uint32_t)pthread_self(); \
         CCNIMsgPacker msg; msg.create(); \
-        CCMsgQueue * que = getMsgQue(seq);
+        CCMsgQueue * que = getMsgQue(seq); \
+        CXmlMsg lgmsg; \
+        lgmsg.create(tag); msg.appendmsg(lgmsg);
 
 #define SendMsgAndWaitRes(tag) msg.pack(seq, 0, _k1, _k2); \
        if (msg.block_send(_tcpsock) < 0) \
        { \
          _lasterr = "send error";LOGE("%s\n", _lasterr.c_str());\
          return -1;\
-       } \
+       }  \
        CCNIMsgParser * rmsg = (CCNIMsgParser *)que->receive(_timeout);\
        if (rmsg == NULL)\
        {\
@@ -155,79 +158,54 @@ void CCNIConnection::disconnect()
        {\
            _lasterr = "received error msg"; LOGE("%s\n", _lasterr.c_str());\
            delete rmsg; \
-          return -2; \
+           return -2; \
+       }\
+       int rcode = rgmsg.findChild(xmlTagReturnCode).getIntContent(); \
+       if (rcode != 0) \
+       { \
+           string v; \
+           rgmsg.findChild(xmlTagDescription).getContent(v); \
+           LOGE("%s error: %s\n", tag, v.c_str()); \
+           _lasterr = v; \
+           delete rmsg; \
+           return rcode - 2; \
        }
+
+#define SuccessReturn(tag) {LOGD("%s success\n", tag); delete rmsg; return 0;}
+
+#define SendMsgAndWaitResAndReturn(tag) {SendMsgAndWaitRes(tag) SuccessReturn(tag)}
+
+#define DoSimpleRequest(tag, tagres) {PrepareCCNIMsg(tag) SendMsgAndWaitResAndReturn(tagres)}
 
 int CCNIConnection::login(const char * uname, const char * pwd)
 {
-    PrepareCCNIMsg()
-
-    CXmlMsg lgmsg;
-    lgmsg.create(xmlTagLogin);
+    PrepareCCNIMsg(xmlTagLogin)
     lgmsg.addParameter(xmlTagUserName, uname);
     lgmsg.addParameter(xmlTagPassword, pwd);
-
-    msg.appendmsg(lgmsg);
-
-    SendMsgAndWaitRes(xmlTagLoginRes)
-
-    int rcode = rgmsg.findChild(xmlTagReturnCode).getIntContent();
-
-    if (rcode != 0)
-    {
-        string v;
-        rgmsg.findChild(xmlTagDescription).getContent(v);
-        LOGE("login error: %s\n", v.c_str());
-        _lasterr = v;
-        delete rmsg;
-        return rcode - 3;
-    }
-    LOGD("login success.\n");
-    delete rmsg;
-    return 0;
+    SendMsgAndWaitResAndReturn(xmlTagLoginRes)
 }
 int CCNIConnection::logout()
 {
-    PrepareCCNIMsg()
+    PrepareCCNIMsg(xmlTagLogout)
 
-    CXmlMsg lgmsg;
-    lgmsg.create(xmlTagLogout);
     lgmsg.addParameter(xmlTagUserName, _uname.c_str());
     lgmsg.addParameter(xmlTagPassword, _passwd.c_str());
 
-    msg.appendmsg(lgmsg);
+    SendMsgAndWaitResAndReturn(xmlTagLogoutRes)
 
-    SendMsgAndWaitRes(xmlTagLogoutRes)
-    delete rmsg;
-    return 0;
 }
 int CCNIConnection::ccni(string & ccnistr)
 {
-    PrepareCCNIMsg()
-
-    CXmlMsg lgmsg;
-    lgmsg.create(xmlTagCCNI);
-    msg.appendmsg(lgmsg);
-
+    PrepareCCNIMsg(xmlTagCCNI)
     SendMsgAndWaitRes(xmlTagCCNIRes)
-
     rgmsg.toString(ccnistr);
-
     LOGD("ccni:\n%s\n", ccnistr.c_str());
-    delete rmsg;
-    return 0;
-
+    SuccessReturn(xmlTagCCNIRes)
 }
 
 int CCNIConnection::state()
 {
-    PrepareCCNIMsg()
-
-    CXmlMsg lgmsg;
-    lgmsg.create(xmlTagMyState);
-
-    msg.appendmsg(lgmsg);
-
+    PrepareCCNIMsg(xmlTagMyState)
     SendMsgAndWaitRes(xmlTagMyStateRes)
 
     string v;
@@ -265,15 +243,8 @@ int CCNIConnection::state()
 }
 int CCNIConnection::listrooms(room_lst_t & lst)
 {
-    PrepareCCNIMsg()
-
-    CXmlMsg lgmsg;
-    lgmsg.create(xmlTagListRooms);
-
-    msg.appendmsg(lgmsg);
-
+    PrepareCCNIMsg(xmlTagListRooms)
     SendMsgAndWaitRes(xmlTagListRoomsRes)
-
     lst.clear();
     CXmlNode rooms = rgmsg.findChild(xmlTagRooms);
 
@@ -301,34 +272,39 @@ int CCNIConnection::listrooms(room_lst_t & lst)
 
 int CCNIConnection::enterroom(int roomid)
 {
-    PrepareCCNIMsg()
-
-    CXmlMsg lgmsg;
-    lgmsg.create(xmlTagEnterRoom);
+    PrepareCCNIMsg(xmlTagEnterRoom)
     lgmsg.addParameter(xmlTagId, roomid);
-
-    msg.appendmsg(lgmsg);
-
-    SendMsgAndWaitRes(xmlTagEnterRoomRes)
-
-    int rcode = rgmsg.findChild(xmlTagReturnCode).getIntContent();
-
-    if (rcode != 0)
-    {
-        string v;
-        rgmsg.findChild(xmlTagDescription).getContent(v);
-        LOGE("enter room error: %s\n", v.c_str());
-        _lasterr = v;
-        delete rmsg;
-        return rcode - 3;
-    }
-
-    delete rmsg;
-    return 0;
+    SendMsgAndWaitResAndReturn(xmlTagEnterRoomRes)
 }
 int CCNIConnection::leaveroom()
 {
-    return 0;
+    DoSimpleRequest(xmlTagLeaveRoom, xmlTagLeaveRoomRes)
+}
+
+int CCNIConnection::listsessions()
+{
+    DoSimpleRequest(xmlTagListSessions, xmlTagListSessionsRes)
+}
+int CCNIConnection::newsession()
+{
+    DoSimpleRequest(xmlTagNewSession, xmlTagNewSessionRes)
+}
+int CCNIConnection::entersession(int sessionid)
+{
+    PrepareCCNIMsg(xmlTagEnterSession)
+    lgmsg.addParameter(xmlTagId, sessionid);
+    SendMsgAndWaitResAndReturn(xmlTagEnterSessionRes)
+
+}
+int CCNIConnection::leavesession()
+{
+    DoSimpleRequest(xmlTagLeaveSession, xmlTagLeaveSessionRes)
+}
+int CCNIConnection::watchsession(int sessionid)
+{
+    PrepareCCNIMsg(xmlTagWatchSession)
+    lgmsg.addParameter(xmlTagId, sessionid);
+    SendMsgAndWaitResAndReturn(xmlTagWatchSessionRes)
 }
 
 CCMsgQueue * CCNIConnection::getMsgQue(uint32_t seq)
@@ -357,9 +333,9 @@ bool CCNIConnection::sendRes(uint32_t seq, CCNIMsgParser * res)
 
     return true;
 }
-void CCNIConnection::doServerMessage(int sock)
+int CCNIConnection::doServerMessage(int sock)
 {
-    LOGV("read server mesage\n");
+    // LOGV("read server mesage\n");
     CCNIMsgParser * pmsg = new CCNIMsgParser;
     CCNIMsgParser::state_t st;
 
@@ -369,22 +345,21 @@ void CCNIConnection::doServerMessage(int sock)
     {
         LOGD("read eagain\n");
         st = pmsg->read(sock);
-
     }
     if (st != CCNIMsgParser::st_rdok)
     {
         LOGE("read error discard %d.\n", st);
-        return;
+        delete pmsg;
+        return -1;
     }
     if (!pmsg->parse())
     {
         LOGE("got a error message. discard.\n");
-        return;
+        delete pmsg;
+        return -1;
     }
-    {
-        LOGD("seq = 0x%X\n", pmsg->header().seq);
-        LOGV("got a server message: %s\n", pmsg->data());
-    }
+    LOGD("seq = 0x%X\n", pmsg->header().seq);
+    LOGV("got a server msg:\n%s\n", pmsg->data());
     if (pmsg->header().seq != 0)
     {
         if (!sendRes(pmsg->header().seq, pmsg))
@@ -395,20 +370,20 @@ void CCNIConnection::doServerMessage(int sock)
     }
     else
     {
-        LOGD("got server notification.\n")
         delete pmsg;
     }
-
+    return 0;
 }
 
 void CCNIConnection::doWork()
 {
     fd_set rfds;
     struct timeval tv;
+    int ret = 0;
     LOGV("select udp:%d, tcp:%d\n", _udpsock, _tcpsock);
     tv.tv_sec = 5;
     tv.tv_usec = 0;
-    while (1)
+    while (ret >= 0)
     {
         FD_ZERO(&rfds);
         FD_SET(_udpsock, &rfds);
@@ -420,23 +395,28 @@ void CCNIConnection::doWork()
             if (errno == EBADF)
             {
                 LOGD("socket closed, exit.\n");
-                break;
+                ret = -1;
             }
             LOGE("select error.\n");
         }
         else if (FD_ISSET(_udpsock, &rfds))
         {
-            LOGD("udp sock has something.\n");
-            doServerMessage(_udpsock);
+            LOGV("udp sock has something.\n");
+            ret = doServerMessage(_udpsock);
         }
         else if (FD_ISSET(_tcpsock, &rfds))
         {
-            LOGD("tcp sock has something.\n");
-            doServerMessage(_tcpsock);
+            LOGV("tcp sock has something.\n");
+            if ((ret = doServerMessage(_tcpsock)) < 0)
+            {
+                LOGW("connection closed.");
+            }
         }
         else
         {
             // LOGV("select time out, continue.\n");
+            ret = 0;
         }
     }
+    disconnect();
 }

@@ -126,7 +126,8 @@ private:
     int _sessionid;
     int createSession(const CSessionConfig & cfg);
     int leaveSession();
-    int  enterSession(int sid);
+    int enterSession(int sid);
+    int watchSession(int sid); 
 private:
     io_state_t _pstate;
     // for sync io process.

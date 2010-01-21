@@ -205,7 +205,28 @@ bool CClient::doWork()
             _notifier = new CNotifier;
             _notifier->create();
         }
-        leaveRoom();
+        if (_sessionid > 0)
+        {
+            leaveSession();
+            if (_bder && !_bder->empty())
+            {
+                LOGV("broadcaster is not emtpy\n")
+                CEngine::instance().threadsPool().assign(_bder);
+                _bder = new CBroadCaster;
+                _bder->create();
+            }
+            if (_notifier && !_notifier->empty())
+            {
+                LOGV("notifier is not emtpy\n")
+                CEngine::instance().threadsPool().assign(_notifier);
+                _notifier = new CNotifier;
+                _notifier->create();
+            }
+        }
+        if (_roomid > 0)
+        {
+            leaveRoom();
+        }
         CDataMgr & dmgr = CEngine::instance().dataMgr();
         dmgr.delClient(uname());
         LOGV("delete from dmgr ok.\n")

@@ -93,11 +93,22 @@ public:
     int listrooms(room_lst_t & lst);
     int enterroom(int roomid);
     int leaveroom();
-
+   
+    int listsessions();
+    int newsession();
+    int entersession(int sessionid);
+    int leavesession();
+    int watchsession(int sessionid);
+    
     int state();
 
     int ccni(string & ccnistr);
 
+    
+    
+    
+    
+    
     string lasterr()
     {
         return _lasterr;
@@ -106,7 +117,7 @@ public:
     virtual void doWork();
 
 private:
-    void doServerMessage(int sock);
+    int doServerMessage(int sock);
 
     CCMsgQueue * getMsgQue(uint32_t seq);
     bool sendRes(uint32_t seq, CCNIMsgParser * res);
