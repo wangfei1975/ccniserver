@@ -58,6 +58,13 @@ public:
     int requiredScore;
     int ante;
     int watcherCount;
+
+    CSessionConfig() :
+        des("session"), fen("hello"), red(0), innings(0), rule(0), totalTime(10*60), stepTime(30),
+                bonusPerStep(3), requiredScore(0), ante(0), watcherCount(200)
+    {
+
+    }
 };
 class CSession
 {
@@ -70,12 +77,12 @@ private:
 
     set <CClientPtr> _watchers;
     CMutex _lk;
-    
+
     static int genid()
     {
         static int idseed = 0;
         idseed = (idseed + 1)% 20000;
-        return  (idseed+1);
+        return (idseed+1);
     }
 public:
     CSession(CClientPtr ow, const CSessionConfig & cfg) :
@@ -83,7 +90,7 @@ public:
     {
         _id = genid();
     }
-    
+
     uint32_t id()
     {
         return _id;
@@ -92,6 +99,9 @@ public:
     //   >=0 clients number in session 
     int leave(CClientPtr c, CNotifier & notier);
     int enter(CClientPtr c, CNotifier & notier);
+    
+    // -3 session full
+    int watch(CClientPtr c, CNotifier & notier);
     CXmlNode toXml()
     {
         CXmlMsg nd;
@@ -153,9 +163,26 @@ public:
     //
     // ret -2 error session id
     //     -3 session full
-    int  enterSession(uint32_t sid, CClientPtr c, CNotifier & noti);
+    int enterSession(uint32_t sid, CClientPtr c, CNotifier & noti);
+    
+    //
+    // ret -2 error session id
+    //     -3 session full
+    int watchSession(uint32_t sid, CClientPtr c, CNotifier & noti);
     
     
+    CXmlNode xmlSessionList()
+    {
+        CXmlNode nd;
+        nd.create(xmlTagSessions);
+        CAutoMutex du(_slk);
+        session_list_t::iterator it;
+        for (it = _sessions.begin(); it != _sessions.end(); ++it)
+        {
+            nd.addChild(it->second->toXml());
+        }
+        return nd;
+    }
     CXmlNode toXml()
     {
         CXmlMsg nd;
@@ -183,7 +210,7 @@ public:
     bool inroom(CClientPtr c)
     {
         CAutoMutex dumy(_lk);
-        return ( _usrlist.find(c) != _usrlist.end());
+        return (_usrlist.find(c) != _usrlist.end());
     }
 
     bool enter(CClientPtr c, CBroadCaster & bd);

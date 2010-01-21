@@ -69,7 +69,6 @@ int CSession::leave(CClientPtr c, CNotifier & notier)
     {
         return ret;
     }
-
     if (_owner != NULL)
     {
         notier.addNotifiee(_owner);
@@ -85,7 +84,31 @@ int CSession::leave(CClientPtr c, CNotifier & notier)
         notier.addNotifiee(*it);
         ret ++;
     }
+    LOGD("leave ret = %d\n", ret);
     return ret;
+}
+int CSession::watch(CClientPtr c, CNotifier & notier)
+{
+    set <CClientPtr>::iterator it;
+    CAutoMutex dumy(_lk);
+    if ((int)_watchers.size() >= _cfg.watcherCount)
+    {
+        return -3;
+    }
+    if (_owner != NULL)
+    {
+        notier.addNotifiee(_owner);
+    }
+    if (_opponent != NULL)
+    {
+        notier.addNotifiee(_opponent);
+    }
+    for (it = _watchers.begin(); it != _watchers.end(); ++it)
+    {
+        notier.addNotifiee(*it);
+    }
+    _watchers.insert(c);
+    return 0;
 }
 int CSession::enter(CClientPtr c, CNotifier & notier)
 {
@@ -108,7 +131,6 @@ int CSession::enter(CClientPtr c, CNotifier & notier)
     for (it = _watchers.begin(); it != _watchers.end(); ++it)
     {
         notier.addNotifiee(*it);
-
     }
     return 0;
 }
@@ -116,6 +138,10 @@ bool CRoom::enter(CClientPtr c, CBroadCaster & bd)
 {
     usr_list_t::iterator it;
     CAutoMutex du(_lk);
+    if (_usrlist.size() >= capacity())
+    {
+        return false;
+    }
     if (_usrlist.insert(c).second)
     {
         for (it = _usrlist.begin(); it != _usrlist.end(); ++it)
@@ -181,6 +207,7 @@ bool CRoom::leaveSession(int sid, CClientPtr c, CNotifier & noti, CBroadCaster &
 
     if (ret == 0)
     {
+        LOGD("session empty, delete it\n");
         _sessions.erase(it);
         usr_list_t::iterator uit;
         for (uit = _usrlist.begin(); uit != _usrlist.end(); ++uit)
@@ -196,13 +223,24 @@ bool CRoom::leaveSession(int sid, CClientPtr c, CNotifier & noti, CBroadCaster &
 int CRoom::enterSession(uint32_t sid, CClientPtr c, CNotifier & noti)
 {
     session_list_t::iterator it;
-    _slk.lock();
+    CAutoMutex du(_slk);
     it = _sessions.find(sid);
-    _slk.unlock();
+
     if (it == _sessions.end())
     {
         return -2;
     }
 
     return it->second->enter(c, noti);
+}
+int CRoom::watchSession(uint32_t sid, CClientPtr c, CNotifier & noti)
+{
+    session_list_t::iterator it;
+    CAutoMutex du(_slk);
+    it = _sessions.find(sid);
+    if (it == _sessions.end())
+    {
+        return -2;
+    }
+    return it->second->watch(c, noti);
 }

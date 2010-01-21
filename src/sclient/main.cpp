@@ -48,6 +48,12 @@ int main(int argc, char * argv[])
     con.listrooms(rooms);
     con.enterroom(1);
     
+    con.listsessions();
+    
+    con.newsession();
+    
+    
+    
     while(1)
     {
         sleep(1);

@@ -109,7 +109,7 @@
 #define xmlTagReturnInfo                "ReturnInfo"
 
 #define xmlTagCount                     "Count"
-#define xmlTagSessionS                  "SessionS"
+#define xmlTagSessions                  "Sessions"
 #define xmlTagSession                   "Session"
 #define xmlTagFen                       "Fen"
 #define xmlTagRed                       "Red"

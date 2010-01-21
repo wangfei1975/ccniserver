@@ -47,9 +47,10 @@ CFlatMsgBufPtr CCNIMsgPacker::packToFlat()
         return m;
     }
     int len = _hd.datalen + sizeof(_hd);
-    uint8_t * data = new uint8_t[len];
+    uint8_t * data = new uint8_t[len+1];
     memcpy(data, &_hd, sizeof(_hd));
     memcpy(data + sizeof(_hd), _data, _hd.datalen);
+    data[len] = 0;
     CFlatMsgBufPtr msg(new CFlatMsgBuf(data, len));
     return msg;
 }
