@@ -135,83 +135,146 @@ void CCNIConnection::disconnect()
         _connected = false;
     }
 }
-#define PrepareCCNIMsg(tag)  uint32_t seq = (uint32_t)pthread_self(); \
-        CCNIMsgPacker msg; msg.create(); \
-        CCMsgQueue * que = getMsgQue(seq); \
-        CXmlMsg lgmsg; \
-        lgmsg.create(tag); msg.appendmsg(lgmsg);
 
-#define SendMsgAndWaitRes(tag) msg.pack(seq, 0, _k1, _k2); \
-       if (msg.block_send(_tcpsock) < 0) \
-       { \
-         _lasterr = "send error";LOGE("%s\n", _lasterr.c_str());\
-         return -1;\
-       }  \
-       CCNIMsgParser * rmsg = (CCNIMsgParser *)que->receive(_timeout);\
-       if (rmsg == NULL)\
-       {\
-         _lasterr = "receive error";LOGE("%s\n", _lasterr.c_str());\
-         return -1;\
-       } \
-       CXmlMsg rgmsg; rgmsg.attach(rmsg->getmsg(tag)); \
-       if (rgmsg.isEmpty()) \
-       {\
-           _lasterr = "received error msg"; LOGE("%s\n", _lasterr.c_str());\
-           delete rmsg; \
-           return -2; \
-       }\
-       int rcode = rgmsg.findChild(xmlTagReturnCode).getIntContent(); \
-       if (rcode != 0) \
-       { \
-           string v; \
-           rgmsg.findChild(xmlTagDescription).getContent(v); \
-           LOGE("%s error: %s\n", tag, v.c_str()); \
-           _lasterr = v; \
-           delete rmsg; \
-           return rcode - 2; \
-       }
+CXmlDoc CCNIConnection::talkToServer(CXmlNode lgmsg)
+{
+    LOGV("send: %s\n", lgmsg.name());
+    string ccnitagres(lgmsg.name());
+    ccnitagres += xmlTagRes;
+    uint32_t seq = (uint32_t)pthread_self();
 
-#define SuccessReturn(tag) {LOGD("%s success\n", tag); delete rmsg; return 0;}
+    CCNIMsgPacker msg;
+    msg.create();
+    CCMsgQueue * que = getMsgQue(seq);
 
-#define SendMsgAndWaitResAndReturn(tag) {SendMsgAndWaitRes(tag) SuccessReturn(tag)}
+    msg.appendmsg(lgmsg);
 
-#define DoSimpleRequest(tag, tagres) {PrepareCCNIMsg(tag) SendMsgAndWaitResAndReturn(tagres)}
+    msg.pack(seq, 0, _k1, _k2);
+    if (msg.block_send(_tcpsock) < 0)
+    {
+        _lasterr = lgmsg.name();
+        _lasterr += " error: ";
+        _lasterr += "send error";
+        LOGE("%s\n", _lasterr.c_str());
+        return NULL;
+    }
 
+    CCNIMsgParser * rmsg = (CCNIMsgParser *)que->receive(_timeout);
+    if (rmsg == NULL)
+    {
+        _lasterr = lgmsg.name();
+        _lasterr += " error: ";
+        _lasterr += "receive error";
+        LOGE("%s\n", _lasterr.c_str());
+        return NULL;
+    }
+
+    CXmlMsg rgmsg;
+    rgmsg.attach(rmsg->getmsg(ccnitagres.c_str()));
+    if (rgmsg.isEmpty())
+    {
+        _lasterr = lgmsg.name();
+        _lasterr += " error: ";
+        _lasterr += "received error msg";
+        LOGE("%s\n", _lasterr.c_str());
+        delete rmsg;
+        return NULL;
+    }
+    int rcode = rgmsg.findChild(xmlTagReturnCode).getIntContent();
+    if (rcode != 0)
+    {
+        string v;
+        rgmsg.findChild(xmlTagDescription).getContent(v);
+        _lasterr = lgmsg.name();
+        _lasterr += " error: ";
+        _lasterr += v;
+        LOGE("%s\n", _lasterr.c_str());
+        delete rmsg;
+        return NULL;
+    }
+    CXmlDoc d(rmsg->detachdoc());
+    delete rmsg;
+    return d;
+}
+int CCNIConnection::doSimpleRequest(const char * reqtag)
+{
+    CXmlMsg msg;
+    CScopedXmlDoc res;
+
+    msg.create(reqtag);
+
+    //
+    //res is a auto delete xmldoc.
+    //
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
+
+    return 0;
+}
 int CCNIConnection::login(const char * uname, const char * pwd)
 {
-    PrepareCCNIMsg(xmlTagLogin)
-    lgmsg.addParameter(xmlTagUserName, uname);
-    lgmsg.addParameter(xmlTagPassword, pwd);
-    SendMsgAndWaitResAndReturn(xmlTagLoginRes)
+    CXmlMsg msg;
+    CScopedXmlDoc res;
+
+    msg.create(xmlTagLogin);
+    msg.addParameter(xmlTagUserName, uname);
+    msg.addParameter(xmlTagPassword, pwd);
+
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
+
+    return 0;
 }
 int CCNIConnection::logout()
 {
-    PrepareCCNIMsg(xmlTagLogout)
+    CXmlMsg msg;
+    CScopedXmlDoc res;
 
-    lgmsg.addParameter(xmlTagUserName, _uname.c_str());
-    lgmsg.addParameter(xmlTagPassword, _passwd.c_str());
+    msg.create(xmlTagLogout);
+    msg.addParameter(xmlTagUserName, _uname.c_str());
+    msg.addParameter(xmlTagPassword, _passwd.c_str());
 
-    SendMsgAndWaitResAndReturn(xmlTagLogoutRes)
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
 
+    return 0;
 }
 int CCNIConnection::ccni(string & ccnistr)
 {
-    PrepareCCNIMsg(xmlTagCCNI)
-    SendMsgAndWaitRes(xmlTagCCNIRes)
-    rgmsg.toString(ccnistr);
-    LOGD("ccni:\n%s\n", ccnistr.c_str());
-    SuccessReturn(xmlTagCCNIRes)
+    CXmlMsg msg;
+    CScopedXmlDoc res;
+
+    msg.create(xmlTagCCNI);
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
+
+    res.getRoot().findChild(xmlTagCCNIRes).findChild(xmlTagServerInformation).toString(ccnistr);
+
+    LOGD("ccni info:%s\n", ccnistr.c_str());
+    return 0;
 }
 
 int CCNIConnection::state()
 {
-    PrepareCCNIMsg(xmlTagMyState)
-    SendMsgAndWaitRes(xmlTagMyStateRes)
-
+    CXmlMsg msg;
+    CScopedXmlDoc res;
+    msg.create(xmlTagMyState);
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
     string v;
-    LOGD("return msg:\n%s\n", rgmsg.toString(v).c_str());
-    rgmsg.findChild(xmlTagState).getContent(v);
+    res.getRoot().findChild(xmlTagMyStateRes).findChild(xmlTagState).getContent(v);
 
+    LOGD("state: %s\n", v.c_str());
     static const struct
     {
         state_t msk;
@@ -236,19 +299,24 @@ int CCNIConnection::state()
             break;
         }
     }
-
-    delete rmsg;
     return (_state = tab[i].msk);
 
 }
 int CCNIConnection::listrooms(room_lst_t & lst)
 {
-    PrepareCCNIMsg(xmlTagListRooms)
-    SendMsgAndWaitRes(xmlTagListRoomsRes)
-    lst.clear();
-    CXmlNode rooms = rgmsg.findChild(xmlTagRooms);
+    CXmlMsg msg;
+    CScopedXmlDoc res;
 
-    for (CXmlNode nd = rooms.child() ; !nd.isEmpty(); nd = nd.next())
+    msg.create(xmlTagListRooms);
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
+
+    lst.clear();
+    CXmlNode rooms = res.getRoot().findChild(xmlTagListRoomsRes).findChild(xmlTagRooms);
+
+    for (CXmlNode nd = rooms.child(); !nd.isEmpty(); nd = nd.next())
     {
         if (nd.type() != XML_ELEMENT_NODE)
         {
@@ -266,45 +334,99 @@ int CCNIConnection::listrooms(room_lst_t & lst)
             lst.push_back(r);
         }
     }
-    delete rmsg;
+
     return lst.size();
 }
 
 int CCNIConnection::enterroom(int roomid)
 {
-    PrepareCCNIMsg(xmlTagEnterRoom)
-    lgmsg.addParameter(xmlTagId, roomid);
-    SendMsgAndWaitResAndReturn(xmlTagEnterRoomRes)
+    CXmlMsg msg;
+    CScopedXmlDoc res;
+
+    msg.create(xmlTagEnterRoom);
+    msg.addParameter(xmlTagId, roomid);
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
+
+    return 0;
 }
 int CCNIConnection::leaveroom()
 {
-    DoSimpleRequest(xmlTagLeaveRoom, xmlTagLeaveRoomRes)
+    return doSimpleRequest(xmlTagLeaveRoom);
 }
 
 int CCNIConnection::listsessions()
 {
-    DoSimpleRequest(xmlTagListSessions, xmlTagListSessionsRes)
+    CXmlMsg msg;
+    CScopedXmlDoc res;
+
+    msg.create(xmlTagListSessions);
+
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
+    msg.attach(res.getRoot().findChild(xmlTagListSessionsRes).findChild(xmlTagSessions));
+    int c = 0;
+    for (CXmlNode nd = msg.child(); !nd.isEmpty(); nd = nd.next())
+    {
+        if (nd.type() != XML_ELEMENT_NODE)
+        {
+            continue;
+        }
+        if (strcmp(nd.name(), xmlTagSession) == 0)
+        {
+            c++;
+        }
+    }
+    LOGD("%d sessions.\n", c);
+    return c;
+
 }
 int CCNIConnection::newsession()
 {
-    DoSimpleRequest(xmlTagNewSession, xmlTagNewSessionRes)
+    return doSimpleRequest(xmlTagNewSession);
 }
 int CCNIConnection::entersession(int sessionid)
 {
-    PrepareCCNIMsg(xmlTagEnterSession)
-    lgmsg.addParameter(xmlTagId, sessionid);
-    SendMsgAndWaitResAndReturn(xmlTagEnterSessionRes)
+    CXmlMsg msg;
+    CScopedXmlDoc res;
 
+    msg.create(xmlTagEnterSession);
+    msg.addParameter(xmlTagId, sessionid);
+
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
+
+    return 0;
+}
+int CCNIConnection::ready()
+{
+    return doSimpleRequest(xmlTagReady);
 }
 int CCNIConnection::leavesession()
 {
-    DoSimpleRequest(xmlTagLeaveSession, xmlTagLeaveSessionRes)
+    return doSimpleRequest(xmlTagLeaveSession);
 }
 int CCNIConnection::watchsession(int sessionid)
 {
-    PrepareCCNIMsg(xmlTagWatchSession)
-    lgmsg.addParameter(xmlTagId, sessionid);
-    SendMsgAndWaitResAndReturn(xmlTagWatchSessionRes)
+    CXmlMsg msg;
+    CScopedXmlDoc res;
+
+    msg.create(xmlTagWatchSession);
+    msg.addParameter(xmlTagId, sessionid);
+
+    if (res.attach(talkToServer(msg)).isEmpty())
+    {
+        return -1;
+    }
+
+    return 0;
+
 }
 
 CCMsgQueue * CCNIConnection::getMsgQue(uint32_t seq)

@@ -48,9 +48,19 @@ int main(int argc, char * argv[])
     con.listrooms(rooms);
     con.enterroom(1);
     
-    con.listsessions();
-    
-    con.newsession();
+    if (con.listsessions() == 0)
+    {
+      printf("0 siesssions.\n");
+       con.newsession();
+       con.ready();
+    }
+    else
+    {
+        printf("enter session.\n");
+        con.entersession(2);
+        con.ready();
+        con.state();
+    }
     
     
     

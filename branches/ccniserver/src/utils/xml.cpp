@@ -118,12 +118,12 @@ bool CXmlNode::create()
 {
     return create("");
 }
+ 
 void CXmlNode::free()
 {
     xmlFreeNode(_node);
     _node = NULL;
 }
-
 CXmlNode CXmlNode::attach(xmlNodePtr nd)
 {
     _node = nd;

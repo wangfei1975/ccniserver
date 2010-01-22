@@ -100,6 +100,8 @@ public:
     int leavesession();
     int watchsession(int sessionid);
     
+    int ready();
+    
     int state();
 
     int ccni(string & ccnistr);
@@ -107,7 +109,7 @@ public:
     
     
     
-    
+   
     
     string lasterr()
     {
@@ -118,10 +120,12 @@ public:
 
 private:
     int doServerMessage(int sock);
-
+    
+    CXmlDoc talkToServer(CXmlNode nd);
+    int     doSimpleRequest(const char * reqtag);
     CCMsgQueue * getMsgQue(uint32_t seq);
     bool sendRes(uint32_t seq, CCNIMsgParser * res);
-
+   
 private:
     typedef map<uint32_t, CCMsgQueue *> event_lst_t;
     int _udpsock;

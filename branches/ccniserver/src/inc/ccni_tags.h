@@ -59,7 +59,9 @@
 #define xmlTagNotifyWatchSession        "NotifyWatchSession"
 
 #define xmlTagReady                     "Ready"
-#define xmlTagNotifyStartPlay           "NotifyStartPlay"
+#define xmlTagReadyRes                  "ReadyRes"
+#define xmlTagNotifyReady               "NotifyReady"
+#define xmlTagNotifyStartGame           "NotifyStartGame"
 
 #define xmlTagMove                      "Move"
 #define xmlTagNotifyMove                "NotifyMove"
@@ -113,6 +115,7 @@
 #define xmlTagSession                   "Session"
 #define xmlTagFen                       "Fen"
 #define xmlTagRed                       "Red"
+#define xmlTagBlack                     "Black"
 #define xmlTagInnings                   "Innings"
 #define xmlTagRule                      "Rule"
 #define xmlTagTotalTime                 "TotalTime"
@@ -135,17 +138,18 @@
 
 #define xmlTagUnknowMessage             "UnknowMessage"
 
-#define xmlTagSeriverInformation        "SeriverInformation"
+#define xmlTagServerInformation         "ServerInformation"
 #define xmlTagServerType                "ServerType"
 #define xmlTagServerVersion             "ServerVersion"
 #define xmlTagCCNIVersion               "CCNIVersion"
 #define xmlTagRes                       "Res"
 
 #define xmlTagRooms                      "Rooms"
-#define xmlTagRoom                      "Room"
+#define xmlTagRoom                       "Room"
 #define xmlTagCapacity                   "Capacity"
 #define xmlTagUserCount                  "UserCount"
-#define xmlTagId                       "Id"
+#define xmlTagId                         "Id"
  
-
+#define xmlTagMoving                     "Moving"
+#define xmlTagPondering                  "Pondering"
 #endif /*CCNI_TAGS_H_*/

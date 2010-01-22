@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -62,7 +62,7 @@ CLog::CLog(const char * fname, LOGTYPE type, LOGFILE_CFG policy, int fsize) :
         _queue = new CCMsgQueue();
         _queue->create();
     }
- 
+
     if (_pth == 0)
     {
         if (pthread_create(&_pth, NULL, (void *(*)(void *))thread_func, NULL) != 0)
@@ -118,7 +118,7 @@ int CLog::dumpbin(const void * buf, int len)
     {
         return 0;
     }
-    LOGITEM * item =  new LOGITEM(this);
+    LOGITEM * item = new LOGITEM(this);
     const unsigned char * base = (const unsigned char *)buf;
     int llen = 0, i;
     for (i = 0; i <len; i++)
@@ -146,9 +146,10 @@ int CLog::print(const char * fmt, ...)
     struct timeval tm;
     gettimeofday(&tm, NULL);
     localtime_r(&(tm.tv_sec), &(item->logtime));
-    int len = sprintf(item->txt, "%04d-%02d-%02d %02d:%02d:%02d:%03d  ", item->logtime.tm_year+1900,
-            item->logtime.tm_mon+1, item->logtime.tm_mday, item->logtime.tm_hour, item->logtime.tm_min,
-            item->logtime.tm_sec, ((int)tm.tv_usec)/1000);
+    int len = sprintf(item->txt, "%04d-%02d-%02d %02d:%02d:%02d:%03d  ",
+            item->logtime.tm_year+1900, item->logtime.tm_mon+1, item->logtime.tm_mday,
+            item->logtime.tm_hour, item->logtime.tm_min, item->logtime.tm_sec, ((int)tm.tv_usec)
+                    /1000);
     va_list body;
     va_start(body, fmt);
     len = vsnprintf(item->txt+len, LOG_BUF_SIZE-len, fmt, body);
@@ -161,14 +162,15 @@ int CLog::print(const char * fmt, ...)
 
     return len;
 }
-int CLog::print(int level, const char * file, const char * function, int line, const char * fmt, ...)
+int CLog::print(int level, const char * file, const char * function, int line, const char * fmt,
+        ...)
 {
 
     if (level > _logLevel)
     {
         return 0;
     }
-    LOGITEM * item =  new LOGITEM(this);
+    LOGITEM * item = new LOGITEM(this);
     struct timeval tm;
     gettimeofday(&tm, NULL);
     localtime_r(&(tm.tv_sec), &(item->logtime));
@@ -184,17 +186,21 @@ int CLog::print(int level, const char * file, const char * function, int line, c
     }
     else
     {
-        len = sprintf(item->txt, "%04d-%02d-%02d %02d:%02d:%02d:%03d  ", item->logtime.tm_year+1900,
-                item->logtime.tm_mon+1, item->logtime.tm_mday, item->logtime.tm_hour, item->logtime.tm_min,
-                item->logtime.tm_sec, ((int)tm.tv_usec)/1000);
+        len = sprintf(item->txt, "%04d-%02d-%02d %02d:%02d:%02d:%03d  ",
+                item->logtime.tm_year+1900, item->logtime.tm_mon+1, item->logtime.tm_mday,
+                item->logtime.tm_hour, item->logtime.tm_min, item->logtime.tm_sec,
+                ((int)tm.tv_usec)/1000);
     }
     va_list body;
     va_start(body, fmt);
     len = vsnprintf(item->txt+len, LOG_BUF_SIZE-len, fmt, body);
     va_end(body);
-    
- 
-    
+
+    if (_type == DEBUG_LOG)
+    {
+        printf("%s", item->txt);
+    }
+
     if (!_queue->send(item))
     {
         return -1;
@@ -248,7 +254,7 @@ void CLog::update(LOGITEM * item)
     }
     if (_type == DEBUG_LOG)
     {
-       printf("%s", item->txt);
+        // printf("%s", item->txt);
     }
     fprintf(_logfp, "%s", item->txt);
     fflush(_logfp);
@@ -265,7 +271,8 @@ bool CLog::_createDateLogFile(const struct tm * t)
     }
     else
     {
-        sprintf(fname, "%s%04d%02d%02d.log", _fname.c_str(), t->tm_year +1900, t->tm_mon+1, t->tm_mday);
+        sprintf(fname, "%s%04d%02d%02d.log", _fname.c_str(), t->tm_year +1900, t->tm_mon+1,
+                t->tm_mday);
     }
     mode_t m = umask(0000);
     if ((_logfp = fopen(fname, "a+")) == NULL)
