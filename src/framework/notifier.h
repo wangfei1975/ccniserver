@@ -69,6 +69,10 @@ public:
         _msg.free();
         _clis.clear();
     }
+    int size()
+    {
+        return _clis.size();
+    }
     bool empty()
     {
         return _clis.empty();

@@ -54,7 +54,7 @@ CClient::hndtable_t CClient::msghnds[] =
 { xmlTagLeaveRoom, stIdle, &CClient::doLeaveRoom },
 { xmlTagNewSession, stIdle, &CClient::doNewSession },
 { xmlTagEnterSession, stIdle, &CClient::doEnterSession },
-{ xmlTagLeaveSession, stSessional|stWatching, &CClient::doLeaveSession },
+{ xmlTagLeaveSession, stInSession, &CClient::doLeaveSession },
 { xmlTagWatchSession, stIdle, &CClient::doWatchSession },
 { xmlTagReady, stSessional, &CClient::doReady },
 { xmlTagMove, stMoving, &CClient::doMove },
@@ -70,7 +70,7 @@ bool CClient::checkstate(CXmlNode msg, state_t vstate)
     if ((_state & vstate) == 0)
     {
         string tag(msg.name());
-        tag += "Res";
+        tag += xmlTagRes;
         CXmlMsg lgmsg;
         lgmsg.create(tag.c_str());
         lgmsg.addParameter(xmlTagReturnCode, -1);
@@ -79,6 +79,42 @@ bool CClient::checkstate(CXmlNode msg, state_t vstate)
         return false;
     }
     return true;
+}
+void CClient::genBdsAndNotis()
+{
+    if (_bder == NULL)
+    {
+        _bder = new CBroadCaster;
+        _bder->create();
+    }
+    if (_notifier == NULL)
+    {
+        _notifier = new CNotifier;
+        _notifier->create();
+    }
+}
+
+void CClient::consumeBdsAndNotis()
+{
+    // in case of this processing generate some broadcast messages.
+    // if broadcast msg is not empty, we assign it to threads poll.
+    // if is empty, we don't need delete it, we can use it in next loop or next ccni message
+    if (!_bder->empty())
+    {
+        LOGV("broadcaster is not emtpy\n")
+        CEngine::instance().threadsPool().assign(_bder);
+        _bder = new CBroadCaster;
+        _bder->create();
+    }
+
+    // in case of this processing generate some notification to other clients.
+    if (!_notifier->empty())
+    {
+        LOGV("notifier is not emtpy\n")
+        CEngine::instance().threadsPool().assign(_notifier);
+        _notifier = new CNotifier;
+        _notifier->create();
+    }
 }
 void CClient::procMsgs(CCNIMsgParser & pmsg)
 {
@@ -106,40 +142,13 @@ void CClient::procMsgs(CCNIMsgParser & pmsg)
             break;
         }
 
-        if (_bder == NULL)
-        {
-            _bder = new CBroadCaster;
-            _bder->create();
-        }
-        if (_notifier == NULL)
-        {
-            _notifier = new CNotifier;
-            _notifier->create();
-        }
+        genBdsAndNotis();
 
         if ((this->*msghnds[i].fun)(msg) < 0)
         {
             break;
         }
-
-        // in case of this processing generate some broadcast messages.
-        // if broadcast msg is not empty, we assign it to threads poll.
-        // if is empty, we don't need delete it, we can use it in next loop or next ccni message
-        if (!_bder->empty())
-        {
-            LOGV("broadcaster is not emtpy\n")
-            CEngine::instance().threadsPool().assign(_bder);
-            _bder = NULL;
-        }
-
-        // in case of this processing generate some notification to other clients.
-        if (!_notifier->empty())
-        {
-            LOGV("notifier is not emtpy\n")
-            CEngine::instance().threadsPool().assign(_notifier);
-            _notifier = NULL;
-        }
-
+        consumeBdsAndNotis();
     }
 
     //
@@ -320,7 +329,7 @@ int CClient::enterSession(int sid)
     _sessionid = sid;
     if (!_notifier->empty())
     {
-        LOGV("notification.\n");
+        LOGV("has notification %d.\n", _notifier->size());
         CXmlMsg bdmsg;
         bdmsg.create(xmlTagNotifyEnterSession);
         bdmsg.addParameter(xmlTagUserName, uname());
@@ -328,6 +337,7 @@ int CClient::enterSession(int sid)
     }
     return 0;
 }
+
 IMPL_MSG_HANDLE(doEnterRoom)
 {
     LOGV("in\n");
@@ -421,14 +431,13 @@ IMPL_MSG_HANDLE(doEnterSession)
         doreturn(xmlTagEnterSessionRes, -3, "session full");
     }
     doreturn(xmlTagEnterSessionRes, 0, "enter session success");
-    return 0;
+
 }
 
 IMPL_MSG_HANDLE(doLeaveSession)
 {
     leaveSession();
     doreturn(xmlTagLeaveSessionRes, 0, "leave session success");
-    return 0;
 }
 
 IMPL_MSG_HANDLE(doWatchSession)
@@ -450,7 +459,39 @@ IMPL_MSG_HANDLE(doWatchSession)
 
 IMPL_MSG_HANDLE(doReady)
 {
-    return 0;
+    LOGV("in roomid %d, session id %d\n", _roomid, _sessionid);
+    ASSERT ((_ctsk != NULL && _roomid> 0 && _sessionid> 0));
+    CDataMgr & dmgr = CEngine::instance().dataMgr();
+    CRoomPtr room = dmgr.findRoom(_roomid);
+    ASSERT(room != NULL);
+    string redn, bkn;
+    int ret = room->ready(_sessionid, _ctsk->client(), *_notifier, redn, bkn);
+    LOGV("in 2 %d\n", ret);
+    ASSERT(ret >= 0);
+
+    if (!_notifier->empty())
+    {
+        LOGV("has notifications.\n");
+        CXmlMsg bdmsg;
+        bdmsg.create(xmlTagNotifyReady);
+        bdmsg.addParameter(xmlTagUserName, uname());
+        _notifier->append(bdmsg);
+        if (ret == 1)
+        {
+            bdmsg.create(xmlTagNotifyStartGame);
+            bdmsg.addParameter(xmlTagMoving, redn.c_str());
+            bdmsg.addParameter(xmlTagPondering, bkn.c_str());
+            _notifier->append(bdmsg);
+
+            CNotifier * n = new CNotifier();
+            n->create();
+            n->addNotifiee(_ctsk->client());
+            n->append(CXmlMsg(bdmsg.clone()));
+            CEngine::instance().threadsPool().assign(n);
+        }
+    }
+
+    doreturn(xmlTagReadyRes, 0, "Ready ok");
 }
 
 IMPL_MSG_HANDLE(doMove)
@@ -500,7 +541,7 @@ IMPL_MSG_HANDLE(doCCNI)
     CXmlMsg lgmsg, svrinfo;
     lgmsg.create(xmlTagCCNIRes);
     lgmsg.addParameter(xmlTagReturnCode, 0);
-    svrinfo.create(xmlTagSeriverInformation);
+    svrinfo.create(xmlTagServerInformation);
 
     svrinfo.addParameter(xmlTagServerType, "CCNIServer");
     svrinfo.addParameter(xmlTagServerVersion, "1.0");

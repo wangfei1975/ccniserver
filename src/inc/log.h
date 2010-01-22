@@ -97,7 +97,7 @@ public:
         }
     };
 public:
-
+ 
     CLog(const char * fname = NULL, LOGTYPE type = DEBUG_LOG, LOGFILE_CFG policy = SPLIT_ON_SIZE,
             int fsize = DEFAULT_LOGFILE_SIZE);
 
@@ -223,7 +223,7 @@ private:
 #define LOGV(...)     {CLog::dbgLog()->print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 
 #define DUMPBIN(buf, len) {CLog::dbgLog()->dumpbin(buf, len);}
-#define OOPS(...)    {LOGE("****OOPS****\n");LOGE(__VA_ARGS__);LOGE("****OOPS****\n"); exit(0);}
+#define OOPS(...)    {LOGE("****OOPS****\n");LOGE(__VA_ARGS__);LOGE("****OOPS****\n"); usleep(1000000);exit(0);}
 #define ASSERT(v)    {if (!(v)){ OOPS("BUGS HERE.\n");}}
 
 #endif /*LOG_H_*/

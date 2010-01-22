@@ -47,6 +47,8 @@
 class CXmlMsg : public CXmlNode
 {
 public:
+    CXmlMsg(xmlNodePtr m):CXmlNode(m){}
+    CXmlMsg(){}
     bool addParameter(const char * paramName, int value)
     {
         char sv[16];
@@ -196,7 +198,6 @@ public:
     }
 };
 
-
 //
 // CCNINotification is a wraper of CFlatMsgBuf.
 // It is self state maintained. used for send same FlatMsgBuf to multiple
@@ -240,7 +241,7 @@ public:
         _pos += slen;
         if (_pos >= len)
         {
-              return 0;
+            return 0;
         }
         return 1;
     }
@@ -321,7 +322,12 @@ public:
     {
         return _doc.getRoot().child();
     }
-
+    CXmlDoc detachdoc()
+    {
+        CXmlDoc a(_doc);
+        _doc.detach();
+        return a;
+    }
     const char * data()
     {
         return _data;
@@ -331,12 +337,12 @@ public:
         return _state;
     }
     state_t read(int sock);
-  //  state_t readudp(int sock);
+    //  state_t readudp(int sock);
     const CCNI_HEADER & header()
     {
         return _hd;
     }
-    
+
 private:
 
     state_t _readRdhd(int sock);

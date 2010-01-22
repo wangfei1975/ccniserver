@@ -99,9 +99,8 @@ public:
         //combined state
         stConnected = stOnline|stIdle|stSessional|stReady|stWatching|stMoving|stPondering,
         stInRoom    = stIdle|stSessional|stReady|stWatching|stMoving|stPondering,
-        stInSession = stSessional|stReady|stWatching|stMoving|stPondering,
+        stInSession = stSessional|stReady|stWatching,
         stPlaying   = stMoving|stPondering,
-        
     };
     enum io_state_t
     {
@@ -128,6 +127,7 @@ private:
     int leaveSession();
     int enterSession(int sid);
     int watchSession(int sid); 
+ 
 private:
     io_state_t _pstate;
     // for sync io process.
@@ -145,6 +145,8 @@ private:
     bool dosend();
     bool donotify();
     
+    void genBdsAndNotis();
+    void consumeBdsAndNotis();
     
 public:
     CClient(int tcpfd, CUdpSockData * udp, const secret_key_t & k1, const secret_key_t & k2,
@@ -224,6 +226,14 @@ public:
         const char * iostate[] =
         { "idle", "reading", "sending", "notifing" };
         return iostate[_pstate];
+    }
+    void setstate(state_t s)
+    {
+        _state = s;
+    }
+    state_t state()
+    {
+        return _state;
     }
     const char * strstate()
     {

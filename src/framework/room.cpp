@@ -123,7 +123,7 @@ int CSession::enter(CClientPtr c, CNotifier & notier)
         notier.addNotifiee(_owner);
         _opponent = c;
     }
-    if (_opponent != NULL)
+    else if (_opponent != NULL)
     {
         notier.addNotifiee(_opponent);
         _owner = c;
@@ -133,6 +133,47 @@ int CSession::enter(CClientPtr c, CNotifier & notier)
         notier.addNotifiee(*it);
     }
     return 0;
+}
+int CSession::ready(CClientPtr c, CNotifier & notier, string & redn, string & bkn)
+{
+    LOGV("in\n");
+    set <CClientPtr>::iterator it;
+    int ret = 0;
+    CAutoMutex dumy(_lk);
+    c->setstate(CClient::stReady);
+    if (_owner == c)
+    {  
+        if (_opponent != NULL)
+        {
+            notier.addNotifiee(_opponent);
+            if (_opponent->state() == CClient::stReady)
+            {
+                updatePlayersState(redn, bkn);
+                ret++;
+            }
+        }
+    }
+    else if (_opponent == c)
+    {
+        if (_owner != NULL)
+        {
+            notier.addNotifiee(_owner);
+            if (_owner->state() == CClient::stReady)
+            {
+                updatePlayersState(redn, bkn);
+                ret++;
+            }
+        }
+    }
+    else
+    {
+        ASSERT(false);
+    }
+    for (it = _watchers.begin(); it != _watchers.end(); ++it)
+    {
+        notier.addNotifiee(*it);
+    }
+    return ret;
 }
 bool CRoom::enter(CClientPtr c, CBroadCaster & bd)
 {
@@ -244,3 +285,16 @@ int CRoom::watchSession(uint32_t sid, CClientPtr c, CNotifier & noti)
     }
     return it->second->watch(c, noti);
 }
+int CRoom::ready(uint32_t sid, CClientPtr c, CNotifier & noti, string & redn, string & bkn)
+{
+    session_list_t::iterator it;
+    CAutoMutex du(_slk);
+    it = _sessions.find(sid);
+    if (it == _sessions.end())
+    {
+        return -2;
+    }
+    return it->second->ready(c, noti, redn, bkn);
+
+}
+

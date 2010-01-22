@@ -1,19 +1,19 @@
 /*
-  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-  You should have received a copy of the GNU Generl Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -71,6 +71,11 @@ public:
         _node(nd)
     {
     }
+    CXmlNode(const CXmlNode & nd) :
+        _node(nd._node)
+    {
+
+    }
     ~CXmlNode()
     {
     }
@@ -78,6 +83,11 @@ public:
     bool create(const char * name);
     bool create();
     void free();
+
+    CXmlNode clone()
+    {
+        return xmlCopyNode(_node, 1);
+    }
 
     CXmlNode attach(xmlNodePtr nd);
     void detach();
@@ -96,7 +106,11 @@ public:
 
     CXmlNode findChild(const char * name) const;
     std::string & toString(std::string & strXml);
-    std::string toString(){std::string v; return toString(v);}
+    std::string toString()
+    {
+        std::string v;
+        return toString(v);
+    }
 public:
     CXmlNode child() const
     {
@@ -113,10 +127,11 @@ public:
     }
     xmlElementType type() const
     {
-        return  (_node->type);
+        return (_node->type);
     }
-   
+
 };
+
 /*
  * a simple wrapper of xmlDocPtr
  */
@@ -126,6 +141,11 @@ protected:
     xmlDocPtr _doc;
 public:
 
+    CXmlDoc(const CXmlDoc & d) :
+        _doc(d._doc)
+    {
+
+    }
     CXmlDoc(xmlDocPtr d) :
         _doc(d)
     {
@@ -133,7 +153,7 @@ public:
     CXmlDoc() :
         _doc(NULL)
     {
-
+        
     }
     ~CXmlDoc()
     {
@@ -150,9 +170,10 @@ public:
     {
         return (_doc == NULL);
     }
-    void attach(xmlDocPtr doc)
+    CXmlDoc attach(xmlDocPtr doc)
     {
         _doc = doc;
+        return *this;
     }
     void detach()
     {
@@ -165,7 +186,7 @@ public:
 
     CXmlNode getRoot();
     std::string & toString(std::string & strXml);
-    
+
     void dump(char * & outbuf, int & len)
     {
         xmlChar *xmlbuff;
@@ -175,6 +196,14 @@ public:
     void setRoot(CXmlNode nd)
     {
         xmlDocSetRootElement(_doc, nd);
+    }
+};
+class CScopedXmlDoc:public CXmlDoc
+{
+public:
+    ~CScopedXmlDoc()
+    {
+        free();
     }
 };
 #endif /*XML_H_*/

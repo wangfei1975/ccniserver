@@ -84,6 +84,23 @@ private:
         idseed = (idseed + 1)% 20000;
         return (idseed+1);
     }
+    void updatePlayersState(string & redn, string & bkn)
+    {
+        if (_cfg.red == 0)
+        {
+            _owner->setstate(CClient::stMoving);
+            _opponent->setstate(CClient::stPondering);
+            redn = _owner->uname();
+            bkn = _opponent->uname();
+        }
+        else
+        {
+            _owner->setstate(CClient::stPondering);
+            _opponent->setstate(CClient::stMoving);
+            bkn = _owner->uname();
+            redn = _opponent->uname();
+        }
+    }
 public:
     CSession(CClientPtr ow, const CSessionConfig & cfg) :
         _cfg(cfg), _owner(ow)
@@ -99,9 +116,12 @@ public:
     //   >=0 clients number in session 
     int leave(CClientPtr c, CNotifier & notier);
     int enter(CClientPtr c, CNotifier & notier);
-    
+
     // -3 session full
     int watch(CClientPtr c, CNotifier & notier);
+
+    int ready(CClientPtr c, CNotifier & noti, string & redn, string & bkn);
+
     CXmlNode toXml()
     {
         CXmlMsg nd;
@@ -164,13 +184,18 @@ public:
     // ret -2 error session id
     //     -3 session full
     int enterSession(uint32_t sid, CClientPtr c, CNotifier & noti);
-    
+
     //
     // ret -2 error session id
     //     -3 session full
     int watchSession(uint32_t sid, CClientPtr c, CNotifier & noti);
-    
-    
+
+    //
+    // ret 0 c ready
+    // ret 1 c & c's opponent both ready.
+    //
+    int ready(uint32_t sid, CClientPtr c, CNotifier & noti, string &redn, string & bkn);
+
     CXmlNode xmlSessionList()
     {
         CXmlNode nd;
