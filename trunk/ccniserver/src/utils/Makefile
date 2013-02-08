@@ -23,8 +23,8 @@
 
 ifndef DEBUG
 DEBUG = true
-CC = g++323
-LD = g++323
+CC = g++
+LD = g++
 AR = ar
 CFLAG  = -Wall -pipe -ggdb -D _DEBUG
 endif
@@ -35,25 +35,37 @@ INC      += -I.
 CFLAG    += $(INC)
 
 SRCS     := $(wildcard *.cpp)
-OBJS      = $(SRCS:.cpp=.o)
+OBJS     := $(SRCS:.cpp=.o)
+DEPENDS  := $(SRCS:.cpp=.d)
 
 
 TARGET = $(BIN_DIR)$(UTILS_LIB).a 
 
-.PHONY : all
-all : $(TARGET)
 
-$(TARGET): $(OBJS)
+.PHONY : all
+all : $(TARGET) 
+
+$(TARGET): $(OBJS) $(DEPENDS)
 	$(AR) -r $(TARGET) $(OBJS)  
 
 
 %.o:%.cpp
-	echo $(CC) $(CFLAG) -o $@ -c $?
-	$(CC) $(CFLAG) -o $@ -c $?
+	echo $(CC) $(CFLAG) -o $@ -c $<
+	$(CC) $(CFLAG) -o $@ -c $<
+
+%.d:%.cpp
+#	echo "make dependency" $@
+	@set -e; rm -f $@; \
+        $(CC) -M $(CFLAG) $< > $@.$$$$; \
+        sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+        rm -f $@.$$$$
+
+
+-include ${DEPENDS}
 
 .PHONY : clean	
 clean:
-	-rm -f $(OBJS) $(TARGET) 	
+	-rm -f $(OBJS) $(TARGET) $(DEPENDS) 	
 	
 
 	

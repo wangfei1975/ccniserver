@@ -22,16 +22,22 @@
 #/***************************************************************************************/
 
 PRGNAME = ccniserver 
-MAKE    = make --no-print-directory -s
-CCNI_DIR        = ./ccni
+MAKE    = make --no-print-directory -s 
+CCNI_DIR        = ./ccnimsg
 FRAMEWORK_DIR   = ./framework
 UTILS_DIR       = ./utils
 DBI_DIR         = ./dbi
+SCLIENT_DIR     = ./sclient
+TOOL_DIR        = ./tool
+LIBCCNICLIENT_DIR = ./libccni
 
-export CCNI_LIB      = libccni
+export LIBCCNICLIENT = libccni
+export CCNI_LIB      = libccnimsg
 export UTILS_LIB     = libutils
 export DBI_LIB       = libdbi
 export CCNI_SERVER   = $(PRGNAME)
+export CCNI_SCLIENT  = ccni
+export CCNI_TOOL     = ccnitool
 
 CURDIR := $(shell pwd)
 
@@ -39,11 +45,20 @@ ifndef ($(DEBUG))
 DEBUG = true
 endif
 
+ifeq ($(DEBUG), true) 
+    ifndef ($(LOG_LEVEL))
+        LOG_LEVEL = 5 
+    endif
+else
+    ifndef ($(LOG_LEVEL))
+        LOG_LEVEL = 2 
+    endif
+endif
 
 ifeq ($(DEBUG), true) 
-CFLAG  = -Wall -pipe -ggdb -D_DEBUG -DLOG_LEVEL=5
+CFLAG  = -Wall -pipe -ggdb -D_DEBUG -DLOG_LEVEL=$(LOG_LEVEL)
 else
-CFLAG  = -Wall -pipe -O3 -DLOG_LEVEL=1
+CFLAG  = -Wall -pipe -O3 -DLOG_LEVEL=$(LOG_LEVEL)
 endif
 
 export CFLAG
@@ -60,9 +75,9 @@ export  LIBS = -L/usr/lib -lpthread -lxml2 -lssl
 export DEBUG
 
 .PHONY : all
-all : DISPTITLE $(CCNI_SERVER)
+all : DISPTITLE mklibccni_client $(CCNI_SERVER) mkccni
 
-$(CCNI_SERVER):mklibutils mklibccni mkdbi mkccniserver
+$(CCNI_SERVER):mklibutils mklibccni mkdbi mkccniserver mkccnitool
 mkccniserver:
 	@echo start "make" $(CCNI_SERVER) ...
 	$(MAKE) -C $(FRAMEWORK_DIR)
@@ -85,8 +100,21 @@ mkdbi:
 	$(MAKE) -C $(DBI_DIR)
 	@echo "make" $(DBI_LIB) complete
 	@echo
-
-
+mkccni:
+	@echo start "make" $(CCNI_SCLIENT)...
+	$(MAKE) -C $(SCLIENT_DIR)
+	@echo "make" $(CCNI_SCLIENT) complete
+	@echo
+mkccnitool:
+	@echo start "make" $(CCNI_TOOL)...
+	$(MAKE) -C $(TOOL_DIR)
+	@echo "make" $(CCNI_TOOL) complete
+	@echo
+mklibccni_client:
+	@echo start "make" $(LIBCCNICLIENT)...
+	$(MAKE) -C $(LIBCCNICLIENT_DIR)
+	@echo "make" $(LIBCCNICLIENT) complete
+	@echo
 DISPTITLE:
 	@echo "***********************************************"
 	@echo DEBUG   = $(DEBUG)
@@ -102,6 +130,10 @@ clean:
 	- $(MAKE) -C $(CCNI_DIR)        clean
 	- $(MAKE) -C $(DBI_DIR)         clean
 	- $(MAKE) -C $(FRAMEWORK_DIR)   clean
+	- $(MAKE) -C $(SCLIENT_DIR)   clean
+	- $(MAKE) -C $(TOOL_DIR)   clean
+	- $(MAKE) -C $(LIBCCNICLIENT_DIR) clean
+
 
 
 

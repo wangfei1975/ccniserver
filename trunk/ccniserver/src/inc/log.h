@@ -1,3 +1,19 @@
+/*
+  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU Generl Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -41,8 +57,10 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <errno.h>
+#include <sys/epoll.h>
 
-#include "msgqueue.h"
+#include "cmsgqueue.h"
 #include "mutex.h"
 /*
  * main idea of log system.
@@ -51,6 +69,7 @@
  *    . log thread receive LOGITEM from msg queue, and do real output.(see function update) 
  *    . each CLog instance has its own log type, log file serials, split strategy, log level, etc.
  * */
+
 class CLog
 {
 public:
@@ -78,7 +97,7 @@ public:
         }
     };
 public:
-
+ 
     CLog(const char * fname = NULL, LOGTYPE type = DEBUG_LOG, LOGFILE_CFG policy = SPLIT_ON_SIZE,
             int fsize = DEFAULT_LOGFILE_SIZE);
 
@@ -87,16 +106,18 @@ public:
     //build string send to msg queue.
     int print(int level, const char * file, const char * function, int line, const char * fmt, ...);
 
+    int print(const char * fmt, ...);
+    
+    int dumpbin(const void * buf, int len);
     //write to file
     void update(LOGITEM * item);
 public:
 
     static CLog * dbgLog();
-    static CLog * evtLog();
 
 private:
     static pthread_t _pth;
-    static CMsgQueue * _queue;
+    static CCMsgQueue * _queue;
     static int _instance;
 
 private:
@@ -117,7 +138,67 @@ private:
 private:
 
     static void * thread_func(void *);
-
+    
+   
+private:
+    /*
+    class CAllocator
+    {
+    private:
+        CMutex _lk;    
+        list <LOGITEM *> _mempools;
+        static const unsigned SSIZE = 1024; 
+    public:
+        LOGITEM * alloc(CLog * l)
+        {
+//            _lk.lock();
+//            if (!_mempools.empty())
+//            {
+//                LOGITEM * p = *_mempools.begin();
+//                _mempools.erase(_mempools.begin());
+//                _lk.unlock();
+//                p->logger = l;
+//                return p;
+//            }
+//            _lk.unlock();
+            return new LOGITEM(l);
+        }
+        void free(LOGITEM * p)
+        {
+//            _lk.lock();
+//            if (_mempools.size() < SSIZE)
+//            {
+//               _mempools.push_back(p);
+//               _lk.unlock();
+//            }
+//            else
+//            {
+//                _lk.unlock();
+//                delete p;
+//            }
+            delete p;
+        }
+        CAllocator()
+        {
+            for (unsigned int i = 0; i < SSIZE; i++)
+            {
+                _mempools.push_back(new LOGITEM(NULL));
+            }
+        }
+        ~CAllocator()
+        {
+            list <LOGITEM *>::iterator it;
+            _lk.lock();
+            for (it = _mempools.begin(); it != _mempools.end(); ++it)
+            {
+                delete (*it);
+            }
+            _lk.unlock();
+        }
+    };
+    static CAllocator _alloc;
+     
+    */
 };
 
 /*  
@@ -141,15 +222,8 @@ private:
 #define LOGD(...)     {CLog::dbgLog()->print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 #define LOGV(...)     {CLog::dbgLog()->print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
 
-/*
- *   business logger
- *            (TBD)
- */
-
-//#define ELOGE(...)     {LOGE(__VA_ARGS__); if(evtLog)evtLog->print(0, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-//#define ELOGW(...)     {LOGW(__VA_ARGS__); if(evtLog)evtLog->print(1, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-//#define ELOGI(...)     {LOGI(__VA_ARGS__); if(evtLog)evtLog->print(2, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-//#define ELOGD(...)     {LOGD(__VA_ARGS__); if(evtLog)evtLog->print(3, __FILE__, __func__, __LINE__, __VA_ARGS__);}
-//#define ELOGV(...)     {LOGV(__VA_ARGS__); if(evtLog)evtLog->print(4, __FILE__, __func__, __LINE__, __VA_ARGS__);}
+#define DUMPBIN(buf, len) {CLog::dbgLog()->dumpbin(buf, len);}
+#define OOPS(...)    {LOGE("****OOPS****\n");LOGE(__VA_ARGS__);LOGE("****OOPS****\n"); usleep(1000000);exit(0);}
+#define ASSERT(v)    {if (!(v)){ OOPS("BUGS HERE.\n");}}
 
 #endif /*LOG_H_*/
