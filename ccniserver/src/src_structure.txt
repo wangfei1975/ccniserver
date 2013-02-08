@@ -4,5 +4,8 @@
  utils       utilitys,include log system and some wrappers of system-call.
  framework   server framework
  sclient     a sample client to test server
+ tool        ccni management tool
+ 
+ 
 
 

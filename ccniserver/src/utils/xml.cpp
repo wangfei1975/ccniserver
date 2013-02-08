@@ -1,3 +1,19 @@
+/*
+  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU Generl Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -53,15 +69,22 @@ bool CXmlDoc::createFromXmlCdata(const char * xmlstring, int len)
     }
     return true;
 }
-CXmlNode CXmlDoc::getRoot()
+bool CXmlDoc::createFromFile(const char * fname)
 {
-    CXmlNode nd;
+    _doc = xmlParseFile(fname);
+    if (_doc == NULL)
+    {
+        return false;
+    }
+    return true;
+}
+CXmlNode CXmlDoc::getRoot()
+{ 
     if (isEmpty())
     {
-        return nd;
+        return NULL;
     }
-    nd.attach(xmlDocGetRootElement(_doc));
-    return nd;
+    return xmlDocGetRootElement(_doc);
 
 }
 void CXmlDoc::free()
@@ -95,31 +118,39 @@ bool CXmlNode::create()
 {
     return create("");
 }
+ 
 void CXmlNode::free()
 {
     xmlFreeNode(_node);
     _node = NULL;
 }
-
-void CXmlNode::attach(xmlNodePtr nd)
+CXmlNode CXmlNode::attach(xmlNodePtr nd)
 {
     _node = nd;
+    return *this;
 }
 
 void CXmlNode::detach()
 {
     _node = NULL;
 }
+int CXmlNode::getIntContent()
+{
+    int v = 0;
+    xmlChar * p = xmlNodeGetContent(_node);
+    if (p != NULL)
+    {
+        sscanf((char *)p, "%d", &v);
+    }
+    xmlFree(p);
+    return v;
+}
 
 std::string & CXmlNode::getContent(std::string & v)
 {
     v.clear();
-    if (isEmpty())
-    {
-        return v;
-    }
     xmlChar * p = xmlNodeGetContent(_node);
-    if (p)
+    if (p != NULL)
     {
         v = (char *)p;
         xmlFree(p);
@@ -191,10 +222,9 @@ bool CXmlNode::addChild(CXmlNode child)
 
 CXmlNode CXmlNode::findChild(const char * name) const
 {
-    CXmlNode nd;
     if (isEmpty())
     {
-        return nd;
+        return NULL;
     }
 
     xmlNodePtr child = _node->children;
@@ -204,13 +234,12 @@ CXmlNode CXmlNode::findChild(const char * name) const
         {
             if (strcmp((const char *)child->name, name) == 0)
             {
-                nd.attach(child);
-                return nd;
+                return (child);
             }
         }
         child = child->next;
     }
-    return nd;
+    return NULL;
 }
 
 std::string & CXmlNode::toString(std::string & strXml)

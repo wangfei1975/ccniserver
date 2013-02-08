@@ -1,3 +1,19 @@
+/*
+  Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU Generl Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -23,37 +39,39 @@
 #include "threads_pool.h"
 #include "log.h"
 
-void * CWorkThread::doWork()
+void CWorkThread::doWork()
 {
+    _startok = true;
+    CJob * j;
     while (!_exit)
     {
-        _startok = true;
-        if (_job)
-        {
-            _job->run();
-            _job = NULL;
-            _boss->moveToIdleList(this);
-            _lk.unlock();
-        }
-        else
+        _event.lock();
+        if (_job == NULL)
         {
             _event.wait();
         }
-        pthread_testcancel();
+        j = _job;
+        _job = NULL;
+        _event.unlock();
+        j->run();
+        _boss->moveToIdleList(this);
+
+       // pthread_testcancel();
     }
-    return NULL;
 }
 
 void CWorkThread::run(CJob * job)
 {
-    _lk.lock();
+    CAutoMutex dumy(_event.mutex());
     _job = job;
-    _event.signal(); //SetEvent(_event);
+    _event.signal();
 }
 void CThreadsPool::moveToIdleList(CWorkThread * w)
 {
     list<CWorkThread *>::iterator it;
-    _lk.lock();
+
+    CAutoMutex dumy(_event.mutex());
+    
     for (it = _busyList.begin(); it != _busyList.end(); ++it)
     {
         if (*it == w)
@@ -61,64 +79,62 @@ void CThreadsPool::moveToIdleList(CWorkThread * w)
     }
     if (it == _busyList.end())
     {
-        _lk.unlock();
+        LOGE("error.\n")
+      
         return;
     }
     _busyList.erase(it);
     _idleList.push_back(w);
-    bool sig = (_idleList.size() == 1);
-    _lk.unlock();
-
-    if (sig)
-    {
-        _event.signal();
-    }
+     
+    //_busyList.erase(w);
+    //_idleList.insert(w);
+    _event.signal();
 }
-void * CThreadsPool::doManagement()
+void CThreadsPool::doWork()
 {
     CWorkThread * w;
     while (1)
     {
+
         CJob * job = (CJob *)_queue.receive();
+
         if (job)
         {
             //find a idle thread from idle list and move to busy list.
-            _lk.lock();
-            while (_idleList.empty())
+            _event.lock();
+            if (_idleList.empty())
             {
-                _lk.unlock();
                 _event.wait();
-                _lk.lock();
             }
+
             w = *(_idleList.begin());
             _idleList.erase(_idleList.begin());
-            _busyList.push_front(w);
-            _lk.unlock();
+            _busyList.push_back(w);
+            _event.unlock();
             w->run(job);
-            pthread_testcancel();
         }
+        pthread_testcancel();
     }
-    return NULL;
 }
 
 bool CThreadsPool::create(int cnt)
 {
     //TRACEL("init thread pool %d...", cnt);
+
     if (!_queue.create())
     {
         return false;
     }
-    if (pthread_create(&_thid, NULL, (void *(*)(void *))_fun, this) < 0)
+    if (!CThread::create())
     {
         return false;
     }
-
     _threadCount = cnt;
     for (int i = 0; i < cnt; i++)
     {
         CWorkThread * w = new CWorkThread(this);
         _idleList.push_back(w);
-        if (!w->init())
+        if (!w->create())
         {
             return false;
         }
@@ -129,28 +145,22 @@ bool CThreadsPool::create(int cnt)
 
 void CThreadsPool::destroy()
 {
+    CThread::destroy();
 
-    if (_thid)
-    {
-        pthread_cancel(_thid);
-        _thid = 0;
-    }
-
-    _lk.lock();
-
+    _event.lock();
     for (list<CWorkThread *>::iterator it = _busyList.begin(); it != _busyList.end(); ++it)
     {
-        (*it)->deInit();
+        (*it)->destroy();
         delete (*it);
     }
     _busyList.clear();
     for (list<CWorkThread *>::iterator it = _idleList.begin(); it != _idleList.end(); ++it)
     {
-        (*it)->deInit();
+        (*it)->destroy();
         delete (*it);
     }
     _idleList.clear();
-    _lk.unlock();
+    _event.unlock();
 
     _queue.destroy();
 }

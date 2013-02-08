@@ -1,3 +1,19 @@
+/*
+ Copyright (C) 2009  Wang Fei (bjwf2000@gmail.com)
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU Generl Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 /***************************************************************************************/
 /*                                                                                     */
 /*  Copyright(c)   .,Ltd                                                               */
@@ -24,7 +40,6 @@
 #include "dbi.h"
 #include "log.h"
 
-static const char * CCNI_DB_NAME = "db/ccni.db";
 static const int SQL_BUFLEN = 2048;
 static const int COL_ID = 0;
 static const int COL_Name = 1;
@@ -61,7 +76,6 @@ const char * sqlSelectUser = "SELECT * FROM USER WHERE Name='%s';";
 CDataBase::CDataBase() :
     _db(NULL)
 {
-    open(CCNI_DB_NAME);
 }
 
 CDataBase::~CDataBase()
@@ -71,11 +85,20 @@ CDataBase::~CDataBase()
 
 int CDataBase::open(const char * url, const char * usr, const char * pwd)
 {
+    char * zErrMsg= NULL;
     if (sqlite3_open(url, &_db) != 0)
     {
         LOGE("Can't open database: %s\n", sqlite3_errmsg(_db));
         sqlite3_close(_db);
         _db = NULL;
+        return -1;
+    }
+
+    CAutoMutex dumy(_lk);
+    if (sqlite3_exec(_db, sqlCreateTable, NULL, 0, &zErrMsg) != SQLITE_OK)
+    {
+        LOGE("SQLite error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
         return -1;
     }
     return 0;
@@ -93,7 +116,7 @@ int CDataBase::verifyUser(const char * name, const char * pwd, CRecord & rec)
 {
     char sqlBuf[SQL_BUFLEN];
     //char *zErrMsg = NULL;
-    sqlite3_stmt *pStmt = NULL;
+    sqlite3_stmt *pStmt= NULL;
 
     /* if (strlen(name) >= NameLen)
      {
@@ -112,6 +135,7 @@ int CDataBase::verifyUser(const char * name, const char * pwd, CRecord & rec)
     if (ret != SQLITE_OK || pStmt == NULL)
     {
         ret = -1;
+        LOGW("sqlite prepare error.\n");
         goto _End;
     }
 
@@ -138,20 +162,20 @@ int CDataBase::verifyUser(const char * name, const char * pwd, CRecord & rec)
         }
         else
         {
-            LOGI("%s error pwd", name);
+            LOGW("%s error pwd\n", name);
             ret = -1;
         }
 
     }
     else
     {
-        LOGI("error user name %s!", name);
+        LOGW("error user name %s\n", name);
         ret = -1;
     }
 
-    _End: _lk.unlock();
-    sqlite3_reset(pStmt);
+    _End: sqlite3_reset(pStmt);
     sqlite3_finalize(pStmt);
+    _lk.unlock();
     return ret;
 }
 
@@ -160,7 +184,7 @@ int CDataBase::updateUserLoginTime(const char * uname)
     char sqlbuf[SQL_BUFLEN];
     char stm[16];
 
-    char * zErrMsg = NULL;
+    char * zErrMsg= NULL;
 
     struct timeval tmv;
     struct tm ltm;
@@ -170,37 +194,35 @@ int CDataBase::updateUserLoginTime(const char * uname)
 
     //SYSTEMTIME tm;
     //GetLocalTime(&tm);
-    sprintf(stm, "%04d%02d%02d%02d%02d%02d", ltm.tm_year+1900, ltm.tm_mon+1, ltm.tm_mday, ltm.tm_hour,
-            ltm.tm_min, ltm.tm_sec);
+    sprintf(stm, "%04d%02d%02d%02d%02d%02d", ltm.tm_year+1900, ltm.tm_mon+1, ltm.tm_mday,
+            ltm.tm_hour, ltm.tm_min, ltm.tm_sec);
 
     sprintf(sqlbuf, sqlUpdateUserLoginTm, stm, uname);
-    _lk.lock();
+    CAutoMutex dumy(_lk);
     if (sqlite3_exec(_db, sqlbuf, NULL, 0, &zErrMsg) != SQLITE_OK)
     {
         LOGE("SQLite error: %s\n", zErrMsg);
-        _lk.unlock();
         sqlite3_free(zErrMsg);
         return -1;
     }
-    _lk.unlock();
+
     return 0;
 }
 int CDataBase::updateUser(const CRecord * rec)
 {
     char sqlbuf[SQL_BUFLEN];
-    char * zErrMsg = NULL;
+    char * zErrMsg= NULL;
 
-    sprintf(sqlbuf, sqlUpdateUser, rec->nicName.c_str(), rec->pwd.c_str(), rec->lastLoginTime.c_str(),
-            rec->score, rec->name.c_str());
-    _lk.lock();
+    sprintf(sqlbuf, sqlUpdateUser, rec->nicName.c_str(), rec->pwd.c_str(),
+            rec->lastLoginTime.c_str(), rec->score, rec->name.c_str());
+    CAutoMutex dumy(_lk);
     if (sqlite3_exec(_db, sqlbuf, NULL, 0, &zErrMsg) != SQLITE_OK)
     {
         LOGE("SQLite error: %s\n", zErrMsg);
-        _lk.unlock();
         sqlite3_free(zErrMsg);
         return -1;
     }
-    _lk.unlock();
+
     return 0;
 }
 
